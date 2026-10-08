@@ -18,8 +18,10 @@ const [previewWide, previewVertical] = await Promise.all([images.preview('balcon
 // "Петербург знает своих." → «Петербург» / «знает» + «своих.» in gold.
 const [first, ...rest] = t.headline.split(' ');
 const accent = rest.pop();
-// The lead's sentences, one per line: who he is, then what he does.
-const lead = t.lead.split(/(?<=\.) /);
+// The lead's sentences, one per line: who he is, then what he does. A line that must wrap keeps a
+// hyphenated word whole, with a one-letter preposition before it: «Риелтор / в Санкт-Петербурге.»,
+// never «Санкт- / Петербурге.».
+const lead = t.lead.split(/(?<=\.) /).map((line) => line.split(/((?<!\S)(?:\S )?\S+-\S+)/));
 
 const frame = catalog['balcony-far'];
 const c = crops.heroWide;
@@ -58,7 +60,14 @@ const vars = {
     <span class="line">{first}</span>{' '}<span class="line">{rest.join(' ')} <span class="accent">{accent}</span></span>
   </p>
   <p class="t-lead lead" data-part="lead">
-    {lead.map((line, i) => (i ? <Fragment>{' '}<span class="line">{line}</span></Fragment> : <span class="line">{line}</span>))}
+    {
+      lead.map((parts, i) => (
+        <Fragment>
+          {i ? ' ' : ''}
+          <span class="line">{parts.map((p, k) => (k % 2 ? <span class="whole">{p}</span> : p))}</span>
+        </Fragment>
+      ))
+    }
   </p>
   <div class="action" data-part="action"><TelegramButton /></div>
   <Fragment slot="chrome">
@@ -131,6 +140,9 @@ const vars = {
 
   .line {
     display: block;
+  }
+  .whole {
+    white-space: nowrap;
   }
   /* The gold word: champagne to gold, top to bottom, as on the customer's frame. Plain gold
      where text cannot be clipped to a gradient. */
