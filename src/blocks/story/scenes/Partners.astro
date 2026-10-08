@@ -1,0 +1,56 @@
+---
+// Scene 6, partners: the stairs photo, the names as text.
+import Scene from '../Scene.astro';
+import Layer from '../Layer.astro';
+import TitleCard from '../../../design/TitleCard.astro';
+import GoldLine from '../../../design/GoldLine.astro';
+import { texts } from '../../texts';
+import { images, catalog, crops, geometry, textToFace } from '../../images';
+
+const t = texts.chapter('partners');
+const photo = await images.picture('stairs');
+const img = catalog.stairs;
+const ratio = img.width / img.height;
+const sizes = `(orientation: landscape) ${(100 * ratio).toFixed(2)}vh, (max-aspect-ratio: ${img.width}/${img.height}) ${(100 * ratio).toFixed(2)}vh, 100vw`;
+const vars = {
+  limit: `calc(${geometry.rightXCss(img, img.marks.face.x0)} - ${textToFace.listed}px - var(--gutter))`,
+  focus: `${geometry.focusPositionCss(img, crops.partnersVertical.focusX)} ${crops.partnersVertical.anchorY * 100}%`,
+  ratio: `${img.width} / ${img.height}`,
+};
+const [first, second] = t.names;
+---
+
+<Scene name="partners" vars={vars}>
+  <Fragment slot="media">
+    <div class="stack portrait" data-stack="main"><Layer picture={photo} sizes={sizes} layer="photo" main /></div>
+  </Fragment>
+  <slot name="accent" slot="accent" />
+  <TitleCard text={t.title} />
+  <div class="names">
+    <p class="t-title">{first}</p>
+    <GoldLine variant="rule" data-line="rule" />
+    <p class="t-title">{second}</p>
+  </div>
+</Scene>
+
+<style>
+  .names {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+  }
+  @media (orientation: landscape) {
+    .portrait {
+      left: auto;
+      aspect-ratio: var(--ratio);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--image-fade));
+      mask-image: linear-gradient(to right, transparent, #000 var(--image-fade));
+    }
+  }
+  @media (orientation: portrait) {
+    .portrait :global(img) {
+      object-position: var(--focus);
+    }
+  }
+</style>

@@ -1,0 +1,50 @@
+---
+// Scene 4, freeze frame: the close portrait. The static page shows the muted version on top.
+import Scene from '../Scene.astro';
+import Layer from '../Layer.astro';
+import FreezeCaption from '../../../design/FreezeCaption.astro';
+import { texts } from '../../texts';
+import { images, catalog, crops, geometry, textToFace } from '../../images';
+
+const t = texts.chapter('freeze');
+const [close, muted] = await Promise.all([images.picture('close'), images.picture('close-muted')]);
+const img = catalog['close-muted'];
+const clearOfFace = `calc(${geometry.rightXCss(img, img.marks.face.x0)} - ${textToFace.listed}px - var(--gutter))`;
+const ratio = img.width / img.height;
+const sizes = `(orientation: landscape) ${(100 * ratio).toFixed(2)}vh, (max-aspect-ratio: ${img.width}/${img.height}) ${(100 * ratio).toFixed(2)}vh, 100vw`;
+const vars = {
+  limit: clearOfFace,
+  'reach-width': clearOfFace,
+  'caption-width': `min(var(--text-column), ${clearOfFace})`,
+  focus: `${geometry.focusPositionCss(img, crops.freezeVertical.focusX)} ${crops.freezeVertical.anchorY * 100}%`,
+  ratio: `${img.width} / ${img.height}`,
+};
+---
+
+<Scene name="freeze" vars={vars}>
+  <Fragment slot="media">
+    <div class="stack portrait" data-stack="main">
+      <Layer picture={close} sizes={sizes} layer="close" />
+      <Layer picture={muted} sizes={sizes} layer="close-muted" main />
+    </div>
+  </Fragment>
+  <slot name="accent" slot="accent" />
+  <FreezeCaption credit={t.credit} caption={t.caption} />
+</Scene>
+
+<style>
+  @media (orientation: landscape) {
+    /* Full height on the right; the left edge fades into ink over 120px. */
+    .portrait {
+      left: auto;
+      aspect-ratio: var(--ratio);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--image-fade));
+      mask-image: linear-gradient(to right, transparent, #000 var(--image-fade));
+    }
+  }
+  @media (orientation: portrait) {
+    .portrait :global(img) {
+      object-position: var(--focus);
+    }
+  }
+</style>

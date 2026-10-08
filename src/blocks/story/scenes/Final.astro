@@ -1,0 +1,78 @@
+---
+// Scene 7, final: the city from above, the call to write, Instagram with the Meta footnote.
+import Scene from '../Scene.astro';
+import Layer from '../Layer.astro';
+import TitleCard from '../../../design/TitleCard.astro';
+import Credit from '../../../design/Credit.astro';
+import { texts } from '../../texts';
+import { images, catalog, crops, geometry, textToFace } from '../../images';
+import { TelegramButton, InstagramLink } from '../../contact';
+
+const t = texts.chapter('final');
+const [wide, tall] = await Promise.all([images.picture('aerial'), images.picture('aerial-vertical')]);
+const frame = catalog.aerial;
+const v = catalog['aerial-vertical'];
+const cv = crops.finalVertical;
+const wideSizes = `(min-aspect-ratio: ${frame.width}/${frame.height}) 100vw, ${((100 * frame.width) / frame.height).toFixed(2)}vh`;
+// Vertical: dome centre in the middle, zoomed in just enough to keep the face out of frame.
+const minVw = (100 * v.width) / (2 * Math.min(cv.centreX, cv.keepOutX - cv.centreX));
+const tallSizes = `(min-aspect-ratio: ${Math.round((10000 * (100 * v.width)) / v.height / minVw)}/10000) ${minVw.toFixed(2)}vw, ${((100 * v.width) / v.height).toFixed(2)}vh`;
+const vars = {
+  limit: `calc(${geometry.coverXCss(frame, frame.marks.dome.x0, crops.finalWide.anchor.x)} - ${textToFace.listed}px - var(--gutter))`,
+  anchor: `${crops.finalWide.anchor.x * 100}% ${crops.finalWide.anchor.y * 100}%`,
+  'tall-width': geometry.excludeWidthCss(v, cv.centreX, cv.keepOutX),
+  'tall-ratio': String(v.height / v.width),
+  'tall-anchor-y': String(cv.anchorY),
+};
+---
+
+<Scene name="final" vars={vars} accent="column">
+  <Fragment slot="media">
+    <div class="stack" data-stack="main">
+      <Layer picture={wide} sizes={wideSizes} portrait={{ picture: tall, sizes: tallSizes }} layer="photo" main />
+    </div>
+  </Fragment>
+  <slot name="accent" slot="accent" />
+  <TitleCard text={t.title} size="display" />
+  <div class="action"><TelegramButton /></div>
+  <div class="signature">
+    <Credit text={t.credit} />
+    <p class="t-body line">{t.line}</p>
+  </div>
+  <div class="instagram"><InstagramLink /></div>
+</Scene>
+
+<style>
+  @media (orientation: landscape) {
+    .stack :global(img) {
+      object-position: var(--anchor);
+    }
+  }
+  @media (orientation: portrait) {
+    .stack :global(img) {
+      inset: auto;
+      left: calc(50% - var(--tall-width) / 2);
+      top: calc(var(--tall-anchor-y) * (100cqh - var(--tall-width) * var(--tall-ratio)));
+      width: var(--tall-width);
+      height: calc(var(--tall-width) * var(--tall-ratio));
+    }
+  }
+  .action {
+    margin-top: var(--space-xl);
+  }
+  .signature {
+    margin-top: var(--space-2xl);
+  }
+  .line {
+    margin-top: var(--space-md);
+    color: var(--text-muted);
+  }
+  .instagram {
+    margin-top: var(--space-lg);
+  }
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .action {
+      display: none;
+    }
+  }
+</style>

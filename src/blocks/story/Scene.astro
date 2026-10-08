@@ -1,0 +1,24 @@
+---
+// One chapter: a full-screen section. Image box, accent place, text column on its scrim.
+import type { SceneName } from './index';
+interface Props {
+  name: SceneName;
+  /** CSS custom properties for this scene (text column limits, crop positions). */
+  vars?: Record<string, string>;
+  /** Where the accent place sits: over the image (default) or in the text column above the text. */
+  accent?: 'overlay' | 'column';
+}
+const { name, vars = {}, accent = 'overlay' } = Astro.props;
+const style = Object.entries(vars)
+  .map(([k, v]) => `--${k}: ${v}`)
+  .join('; ');
+---
+
+<section class:list={['scene', `scene--${name}`]} data-scene={name} style={style || undefined}>
+  <div class="scene__media" data-media><slot name="media" /></div>
+  {accent === 'overlay' && <div class="scene__accent" data-accent><slot name="accent" /></div>}
+  <div class="scene__column">
+    {accent === 'column' && <div class="scene__accent-column" data-accent><slot name="accent" /></div>}
+    <div class="scene__text" data-text><slot /></div>
+  </div>
+</section>

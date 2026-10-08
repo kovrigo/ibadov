@@ -1,0 +1,15 @@
+---
+// The only page: the Story's Landing in the Frame, the link card in <head>.
+// Slots left empty at level 1: before-hero (opening) and accent-<scene> (accents).
+import Frame from '../platform/frame/Frame.astro';
+import Landing from '../blocks/story/Landing.astro';
+import { Card } from '../blocks/card';
+import { images } from '../blocks/images';
+
+const grain = images.texture('grain');
+---
+
+<Frame grain={grain}>
+  <Card slot="head" />
+  <Landing />
+</Frame>

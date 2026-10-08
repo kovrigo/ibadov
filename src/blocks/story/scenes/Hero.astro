@@ -1,0 +1,110 @@
+---
+// Scene 2, first screen: the balcony frame in layers, the credit as the page's only h1.
+import Scene from '../Scene.astro';
+import Layer from '../Layer.astro';
+import Credit from '../../../design/Credit.astro';
+import { texts } from '../../texts';
+import { images, catalog, crops, geometry, textToFace } from '../../images';
+import { TelegramButton } from '../../contact';
+
+const t = texts.chapter('hero');
+const [far, band, near, back, front] = await Promise.all(
+  (['balcony-far', 'balcony-band', 'balcony-near', 'balcony-phone-back', 'balcony-phone-near'] as const).map((n) => images.picture(n)),
+);
+const [previewWide, previewVertical] = await Promise.all([images.preview('balcony'), images.preview('balcony-phone')]);
+
+const frame = catalog['balcony-far'];
+const c = crops.heroWide;
+const pct = (a: { x: number; y: number }) => `${a.x * 100}% ${a.y * 100}%`;
+const clear = (anchorX: number) =>
+  `calc(${geometry.coverXCss(frame, frame.marks.face.x0, anchorX)} - ${textToFace.listed}px - var(--gutter))`;
+// Rendered width of the wide frame: 100vw when the screen is wider than the frame, else 177.68vh.
+const wideSizes = `(min-aspect-ratio: ${frame.width}/${frame.height}) 100vw, ${((100 * frame.width) / frame.height).toFixed(2)}vh`;
+const vars = {
+  limit: clear(c.anchor.x),
+  'limit-narrow': clear(c.narrowAnchor.x),
+  anchor: pct(c.anchor),
+  'anchor-narrow': pct(c.narrowAnchor),
+  'preview-wide': `url(${previewWide})`,
+  'preview-vertical': `url(${previewVertical})`,
+};
+---
+
+<Scene name="hero" vars={vars}>
+  <Fragment slot="media">
+    <div class="preview preview--wide" aria-hidden="true"></div>
+    <div class="stack stack--wide" data-stack="wide">
+      <Layer picture={far} sizes={wideSizes} layer="far" only="wide" eager priority />
+      <Layer picture={band} sizes={wideSizes} layer="band" only="wide" eager />
+      <Layer picture={near} sizes={wideSizes} layer="near" only="wide" eager main />
+    </div>
+    <div class="preview preview--vertical" aria-hidden="true"></div>
+    <div class="stack stack--vertical" data-stack="vertical">
+      <Layer picture={back} sizes="100vw" layer="phone-back" only="vertical" eager priority />
+      <Layer picture={front} sizes="100vw" layer="phone-near" only="vertical" eager main />
+    </div>
+  </Fragment>
+  <slot name="accent" slot="accent" />
+  <Credit text={t.credit} as="h1" />
+  <p class="t-display headline">{t.headline}</p>
+  <p class="t-lead lead">{t.lead}</p>
+  <div class="action"><TelegramButton /></div>
+</Scene>
+
+<style>
+  .preview {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+  .preview--wide {
+    background-image: var(--preview-wide);
+    background-position: var(--anchor);
+  }
+  .stack--wide :global(img) {
+    object-position: var(--anchor);
+  }
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
+    .preview--wide {
+      background-position: var(--anchor-narrow);
+    }
+    .stack--wide :global(img) {
+      object-position: var(--anchor-narrow);
+    }
+  }
+  /* Vertical: the phone windows at full width, pinned to the top, ink below. */
+  .preview--vertical,
+  .stack--vertical {
+    bottom: auto;
+    height: auto;
+    aspect-ratio: 557 / 941;
+  }
+  .preview--vertical {
+    background-image: var(--preview-vertical);
+  }
+  @media (orientation: landscape) {
+    .preview--vertical,
+    .stack--vertical {
+      display: none;
+    }
+  }
+  @media (orientation: portrait) {
+    .preview--wide,
+    .stack--wide {
+      display: none;
+    }
+  }
+  .headline,
+  .lead {
+    margin-top: var(--space-lg);
+  }
+  .action {
+    margin-top: var(--space-xl);
+  }
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .action {
+      display: none;
+    }
+  }
+</style>
