@@ -1,7 +1,15 @@
-# Бриф: лендинг Сергея Ибадова
+---
+title: Scope
+quadrant: explanation
+created: 2026-10-08
+status: agreed
+read_when: Before planning, designing or changing any part of the landing page.
+summary: What the landing page of Sergey Ibadov is, for whom, and what its first release holds.
+---
+<!-- tab: Scope -->
+# Объём: лендинг Сергея Ибадова
 
-Дата: 8 октября 2026
-Статус: направление и объём первого выпуска утверждены заказчиком
+Статус: направление и объём первого выпуска утверждены заказчиком 8 октября 2026.
 
 ## Назначение
 
