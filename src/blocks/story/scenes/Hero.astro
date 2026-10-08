@@ -171,12 +171,13 @@ const vars = {
     }
   }
 
-  /* Menu and scroll hint: wide scheme only, not on a phone lying down. */
+  /* Menu and scroll hint: wide scheme only, not on a phone lying down (lower than 501px, or a
+     window narrower than 768px): there the name stands over the headline. */
   .nav,
   .cue {
     display: none;
   }
-  @media (orientation: landscape) and (min-height: 501px) {
+  @media (orientation: landscape) and (min-width: 768px) and (min-height: 501px) {
     /* The name stands at the top left, level with the menu; the rest stays centred. */
     .credit {
       position: absolute;
@@ -245,13 +246,6 @@ const vars = {
     .cue__label {
       margin-top: var(--space-md);
       color: var(--text-muted);
-    }
-  }
-  /* A window narrower than 768px is the phone scheme even lying down: the phone bar, no menu, and
-     «Пропустить» in the top right corner. */
-  @media (max-width: 767px) {
-    .nav {
-      display: none;
     }
   }
   /* The headline's two lines may run wider than the text column, up to the face. */
