@@ -63,6 +63,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* A broken image draws its description as text; keep that for screen readers only. */
+  color: transparent;
 }
 /* Loading state: only the story script sets data-loading. */
 [data-stack][data-loading] {
