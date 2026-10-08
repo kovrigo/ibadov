@@ -9,7 +9,7 @@ summary: Who visits the landing page and what each of them must be able to do.
 <!-- tab: User stories -->
 # Истории: лендинг Сергея Ибадова
 
-Источник: [объём](scope.md).
+Источник: объём лендинга.
 
 ## Роли
 
