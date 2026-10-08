@@ -39,6 +39,13 @@ const { credit, caption } = Astro.props;
     display: flex;
     flex: 1 1 0;
     min-width: 0;
+    container-type: inline-size;
+  }
+  /* Shorter than a gold-line (64px) the line reads as a dash after the caption: none at all. */
+  @container (width < 64px) {
+    .reach :global(.gold-line) {
+      display: none;
+    }
   }
   @media (orientation: landscape) {
     .caption {
