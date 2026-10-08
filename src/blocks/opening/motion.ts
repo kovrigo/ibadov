@@ -31,8 +31,14 @@ export function startOpening(): Promise<void> {
     cls.remove('intro-wait', 'intro-on');
     return Promise.resolve();
   }
+  // The headline's fade is done: drop its class, so turning "reduce motion" off later does not replay it.
+  const faded = (resolve: () => void) =>
+    setTimeout(() => {
+      cls.remove('intro-fade');
+      resolve();
+    }, motion.duration.title);
   if (!cls.contains('intro-wait')) {
-    return cls.contains('intro-fade') ? new Promise((r) => setTimeout(r, motion.duration.title)) : Promise.resolve();
+    return cls.contains('intro-fade') ? new Promise((r) => faded(r)) : Promise.resolve();
   }
 
   const hero = story.scenes().find((s) => s.name === 'hero');
@@ -155,18 +161,29 @@ export function startOpening(): Promise<void> {
     });
   };
 
-  /** Not ready in time, or the page is not at the top: the first screen, headline fading in. */
+  /**
+   * Not ready in time, or the page is not at the top: the first screen, headline fading in.
+   * A script that arrives after the CSS reveal began (2.5 s, Opening.astro) lets that reveal
+   * finish instead of fading the headline in a second time.
+   */
   const fallback = () => {
     state = 'done';
     for (const t of INPUTS) removeEventListener(t, onInput, true);
+    if (texts.headline && Number(getComputedStyle(texts.headline).opacity) > 0) {
+      faded(() => {
+        cls.remove('intro-wait');
+        resolveReady();
+      });
+      return;
+    }
     cls.remove('intro-wait');
     cls.add('intro-fade');
-    setTimeout(resolveReady, motion.duration.title);
+    faded(resolveReady);
   };
 
   // Leaving through a link (Telegram) counts as seen, played or not: Back never starts the
-  // intro (Scope «Вступление и движение»). Leaving mid-intro: the page comes back from the
-  // back-forward cache with the first screen ready, not mid-intro.
+  // intro (Scope «Вступление и движение»). Leaving or hiding the page mid-intro: it comes back
+  // (back-forward cache, the Telegram app handing back) with the first screen ready.
   addEventListener(
     'click',
     (e) => {
@@ -175,6 +192,9 @@ export function startOpening(): Promise<void> {
     { capture: true },
   );
   addEventListener('pagehide', finish);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) finish();
+  });
 
   if (!overlay || !aerial || !stack || !layers.length) {
     fallback();
@@ -182,6 +202,8 @@ export function startOpening(): Promise<void> {
   }
 
   for (const t of INPUTS) addEventListener(t, onInput, { capture: true, passive: true });
+  // Turning the screen mid-intro shows the other image group: the ready first screen instead.
+  matchMedia('(orientation: portrait)').addEventListener('change', skip);
   onMotionSettingChange((reduced) => {
     if (reduced) finish();
   });

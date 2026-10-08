@@ -87,11 +87,21 @@ const style = Object.entries(vars)
     html.intro-wait [data-scene='hero'] :is([data-part='credit'], [data-part='headline'], [data-part='lead']) {
       animation: opening-in var(--dur-title) var(--ease-enter) 2.5s both;
     }
+    /* Its own keyframes: swapping intro-wait for intro-fade then starts a new 480ms fade
+       instead of jumping to the end of the wait's animation. */
     html.intro-fade [data-scene='hero'] [data-part='headline'] {
-      animation: opening-in var(--dur-title) var(--ease-enter) both;
+      animation: opening-fade var(--dur-title) var(--ease-enter) both;
     }
   }
   @keyframes opening-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes opening-fade {
     from {
       opacity: 0;
     }

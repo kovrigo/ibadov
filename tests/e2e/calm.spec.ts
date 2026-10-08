@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { effectiveOpacity, firstWith, htmlHas, recordClasses } from './motion-fixtures';
+import { effectiveOpacity, firstWith, htmlHas, recordClasses, SEEN_KEY } from './motion-fixtures';
 
 // The calm version (Brief «Спокойная версия», DESIGN.md Motion): with reduced motion nothing moves
 // or scales, there is no intro, no smoke, no glint; the freeze frame is muted with its caption,
@@ -122,5 +122,28 @@ test('reduced motion switched on mid-intro: the ready first screen at once', asy
   await page.evaluate(() => window.scrollTo(0, innerHeight * 1.5));
   await page.waitForTimeout(300);
   expect(await movedElements(page)).toEqual([]);
+  await ctx.close();
+});
+
+test('reduced motion turned on and off again later: the headline does not fade in again', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.waitForTimeout(200);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const lowest = await page.evaluate(async (sel) => {
+    const el = document.querySelector(sel)!;
+    let min = 1;
+    const end = performance.now() + 600;
+    while (performance.now() < end) {
+      min = Math.min(min, Number(getComputedStyle(el).opacity));
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    return min;
+  }, '[data-scene="hero"] [data-part="headline"]');
+  expect(lowest).toBe(1);
   await ctx.close();
 });

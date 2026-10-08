@@ -290,3 +290,23 @@ test.describe('phone turned 390x844 → 844x390', () => {
     for (const l of layers) expect(l).toEqual({ layer: l.layer, blank: false, loaded: true });
   });
 });
+
+for (const device of [
+  { name: 'phone lying down', isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  { name: 'desktop zoomed to 250%', isMobile: false, hasTouch: false, deviceScaleFactor: 1 },
+]) {
+  test.describe(`${device.name} 568x320`, () => {
+    test.use({ viewport: { width: 568, height: 320 }, isMobile: device.isMobile, hasTouch: device.hasTouch, deviceScaleFactor: device.deviceScaleFactor, reducedMotion: 'reduce' });
+
+    test('no sideways scroll, even where a full text column and its scrim meet the edge', async ({ page }) => {
+      await open(page);
+      const l = await layout(page);
+      for (const scene of SCENES) {
+        await scrollToSceneTop(page, l, scene);
+        await page.evaluate(() => window.scrollTo({ left: 200, behavior: 'instant' as ScrollBehavior }));
+        const m = await page.evaluate(() => ({ scrollX, wider: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+        expect({ scene, ...m }).toEqual({ scene, scrollX: 0, wider: 0 });
+      }
+    });
+  });
+}

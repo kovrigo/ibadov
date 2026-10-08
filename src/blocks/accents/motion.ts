@@ -298,6 +298,8 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     for (const g of glints) {
       if (!pending(g)) continue;
       if (g.hero && t < heroReadyAt + a.glint.heroDelay) continue;
+      // Not over a picture that is still loading (Landing.astro's loading state): it would be used up on ink.
+      if (g.layer?.closest('[data-stack]')?.hasAttribute('data-loading')) continue;
       if (!a.glintAllowed(t, g.last)) continue;
       if (onPhone && (smokeShowing || glintPlaying())) continue;
       play(g);

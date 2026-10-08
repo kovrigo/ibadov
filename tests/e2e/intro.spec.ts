@@ -111,7 +111,7 @@ test('second visit and Back from Telegram: no intro', async ({ browser }) => {
   await page.goBack();
   await page.waitForLoadState('load');
   await page.waitForTimeout(2000);
-  let cls = await page.evaluate(() => document.documentElement.className);
+  const cls = await page.evaluate(() => document.documentElement.className);
   expect(cls).not.toContain('intro-on');
   expect(cls).not.toContain('intro-wait');
   await expect(page.locator('[data-opening]')).toBeHidden();
@@ -121,8 +121,9 @@ test('second visit and Back from Telegram: no intro', async ({ browser }) => {
   await page.waitForTimeout(2000);
   expect(await firstWith(page, 'intro-wait')).toBeUndefined();
   expect(await firstWith(page, 'intro-on')).toBeUndefined();
-  cls = await page.evaluate(() => document.documentElement.className);
-  expect(cls).toContain('intro-fade');
+  // The headline faded in (intro-fade from the head script), then the class was cleared.
+  expect(await firstWith(page, 'intro-fade')).toBeDefined();
+  expect(await page.evaluate(() => document.documentElement.className)).toBe('');
   expect(await effectiveOpacity(page, '[data-scene="hero"] [data-part="headline"]')).toBe(1);
   await ctx.close();
 });
@@ -201,6 +202,7 @@ test('motion script blocked: the first screen shows itself at 2.5 s', async ({ b
 
 test('images not ready in 1.5 s: no intro, the first screen with the headline fading in', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
+  await recordHeadline(ctx);
   await ctx.route(/\.(avif|webp)$/, async (route) => {
     await sleep(2500);
     await route.continue().catch(() => undefined);
@@ -212,6 +214,9 @@ test('images not ready in 1.5 s: no intro, the first screen with the headline fa
   expect(await page.evaluate(() => document.documentElement.className)).not.toContain('intro-wait');
   expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
   await expect(page.locator('[data-opening]')).toBeHidden();
+  // A fade over 480ms, not a cut: the headline is seen part way.
+  const fading = (await headlineLog(page)).filter(([, o]) => o > 0.05 && o < 0.95);
+  expect(fading.length).toBeGreaterThan(0);
   await ctx.close();
 });
 
@@ -260,6 +265,34 @@ test('leaving mid-intro: the page comes back with the first screen ready', async
   const cls = await page.evaluate(() => document.documentElement.className);
   expect(cls).not.toContain('intro-on');
   expect(cls).not.toContain('intro-wait');
+  await expect(page.locator('[data-opening]')).toBeHidden();
+  expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
+  await ctx.close();
+});
+
+test('turning the screen mid-intro: the ready first screen', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser, PHONE, { isMobile: true, hasTouch: true });
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  await page.setViewportSize({ width: PHONE.height, height: PHONE.width });
+  await htmlLacks(page, 'intro-on', 1000);
+  await expect(page.locator('[data-opening]')).toBeHidden();
+  expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
+  await ctx.close();
+});
+
+test('hiding the page mid-intro (the Telegram app opens): it comes back ready', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  const cls = await page.evaluate(() => document.documentElement.className);
+  expect(cls).not.toContain('intro-on');
   await expect(page.locator('[data-opening]')).toBeHidden();
   expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
   await ctx.close();

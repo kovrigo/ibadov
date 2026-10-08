@@ -8,6 +8,9 @@
   background: var(--ink);
   isolation: isolate;
   container-type: inline-size;
+  /* The scrim runs 32px past a full-width text column: on a very narrow landscape screen
+     (568×320, or a zoomed-in desktop) it must not make the page scroll sideways. */
+  overflow-x: clip;
 }
 
 /* Stacking inside a scene: image box, then the accent place, then the text column on its scrim. */
