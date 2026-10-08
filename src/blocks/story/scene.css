@@ -51,6 +51,12 @@
   inset: 0;
   transition: opacity var(--dur-small) var(--ease-enter);
 }
+/* Each layer's <picture> is a box filling its group, so motion can move a layer through two
+   elements (the picture and the img) without two scripts writing the same one. */
+[data-stack] > picture {
+  position: absolute;
+  inset: 0;
+}
 [data-stack] img {
   position: absolute;
   inset: 0;

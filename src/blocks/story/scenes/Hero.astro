@@ -45,10 +45,10 @@ const vars = {
     </div>
   </Fragment>
   <slot name="accent" slot="accent" />
-  <Credit text={t.credit} as="h1" />
-  <p class="t-display headline">{t.headline}</p>
-  <p class="t-lead lead">{t.lead}</p>
-  <div class="action"><TelegramButton /></div>
+  <div data-part="credit"><Credit text={t.credit} as="h1" /></div>
+  <p class="t-display headline" data-part="headline">{t.headline}</p>
+  <p class="t-lead lead" data-part="lead">{t.lead}</p>
+  <div class="action" data-part="action"><TelegramButton /></div>
 </Scene>
 
 <style>
