@@ -15,6 +15,8 @@ const brief = {
   cue: 'Пролистайте',
   // Added 8 October 2026 with the customer's video: the intro's skip control.
   skip: 'Пропустить',
+  // What a screen reader says for it (Brief «Тексты», 8 October 2026, design).
+  skipName: 'Пропустить фильм',
   button: 'Написать в Telegram',
   servicesTitle: 'Вариантов два.',
   services: ['Купить', 'Продать'],
@@ -74,7 +76,7 @@ const everything = [
 describe('texts are verbatim from the Brief', () => {
   test('hero', () => {
     const { menu, ...hero } = texts.chapter('hero');
-    expectValue(hero).toEqual({ credit: brief.heroCredit, headline: brief.heroHeadline, lead: brief.heroLead, menuName: brief.menuName, cue: brief.cue, skip: brief.skip });
+    expectValue(hero).toEqual({ credit: brief.heroCredit, headline: brief.heroHeadline, lead: brief.heroLead, menuName: brief.menuName, cue: brief.cue, skip: brief.skip, skipName: brief.skipName });
     expectValue(menu.map((m) => m.label)).toEqual(brief.menu);
     expectValue(menu.map((m) => m.scene)).toEqual(['services', 'partners', 'final']);
   });

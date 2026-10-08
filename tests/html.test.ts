@@ -112,6 +112,10 @@ describe('built page', () => {
     const alts = [...body.matchAll(/\balt="([^"]*)"/g)].map((m) => decode(m[1]!)).filter(Boolean);
     const descriptions = new Set((['hero', 'services', 'freeze', 'numbers', 'partners', 'final'] as const).map((d) => texts.description(d)));
     for (const a of alts) expect({ alt: a, allowed: descriptions.has(a) }).toEqual({ alt: a, allowed: true });
+    // What a screen reader says instead of the visible words («Разделы», «Пропустить фильм»).
+    const labels = [...body.matchAll(/\baria-label="([^"]*)"/g)].map((m) => decode(m[1]!));
+    expect(labels.length).toBeGreaterThan(0);
+    for (const l of labels) expect({ label: l, allowed: allowed.has(l) }).toEqual({ label: l, allowed: true });
   });
 
   test('one image description per scene and scheme', () => {

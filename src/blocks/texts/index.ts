@@ -26,7 +26,7 @@ const menu = [
 ] as const;
 
 const chapters = {
-  hero: { credit: name, headline: tagline, lead: `${city}. ${trade}`, menu, menuName: 'Разделы', cue: 'Пролистайте', skip: 'Пропустить' },
+  hero: { credit: name, headline: tagline, lead: `${city}. ${trade}`, menu, menuName: 'Разделы', cue: 'Пролистайте', skip: 'Пропустить', skipName: 'Пропустить фильм' },
   services: { title: 'Вариантов два.', items: services },
   freeze: { credit: name, caption: facts.rank },
   numbers: { title: 'Цифры', facts: [facts.sales, facts.followers] as const },
