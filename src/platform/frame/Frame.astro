@@ -33,8 +33,9 @@ const headCss = `${tokenCss()}\n${fontFaceCss}`;
 
 <style>
   .grain {
+    /* Larger than the screen, so the grain's jitter (accents) never shows an edge. */
     position: fixed;
-    inset: 0;
+    inset: -32px;
     z-index: 90;
     pointer-events: none;
     background-repeat: repeat;
