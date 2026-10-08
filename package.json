@@ -1,0 +1,23 @@
+{
+  "name": "ibadow-landing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "bun test ./tests/architecture.test.ts && astro build",
+    "test:unit": "bun test ./src ./tests/architecture.test.ts",
+    "test:html": "bun test ./tests/html.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/jost": "^5.3.0",
+    "@fontsource/oranienbaum": "^5.3.0",
+    "astro": "^7.3.7",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}

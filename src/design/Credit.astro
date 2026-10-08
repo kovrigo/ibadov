@@ -1,0 +1,29 @@
+---
+// Credit: the name in spaced capitals, like an opening title, with a gold-line under it.
+import GoldLine from './GoldLine.astro';
+interface Props {
+  text: string;
+  as?: 'h1' | 'p';
+  /** Show the gold-line under the name. `vertical` shows it only in the vertical scheme. */
+  line?: boolean | 'vertical';
+}
+const { text, as: Tag = 'p', line = true } = Astro.props;
+---
+
+<div class="credit">
+  <Tag class="t-credit">{text}</Tag>
+  {line && <span class:list={['line', { 'line--vertical': line === 'vertical' }]}><GoldLine data-line="name" /></span>}
+</div>
+
+<style>
+  .credit {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  @media (orientation: landscape) {
+    .line--vertical {
+      display: none;
+    }
+  }
+</style>

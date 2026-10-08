@@ -1,0 +1,42 @@
+---
+// Numeral: a fact as the customer wrote it, line by line, under a 1px gold-deep rule.
+// One paragraph, so a screen reader reads it as one phrase. Shows its final value without scripts.
+import GoldLine from './GoldLine.astro';
+interface Props {
+  label?: string;
+  lead: string;
+  number: string;
+  unit: string;
+}
+const { label, lead, number, unit } = Astro.props;
+---
+
+<div class="numeral">
+  <GoldLine variant="rule" data-line="fact" />
+  <p class="lines">
+    {label && <span class="t-label t-muted label">{label} </span>}
+    <span class="t-title lead">{lead} </span>
+    <span class="t-numeral number">{number} </span>
+    <span class="t-label t-muted unit">{unit}</span>
+  </p>
+</div>
+
+<style>
+  .numeral {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .lines > span {
+    display: block;
+  }
+  .label {
+    margin-bottom: var(--space-sm);
+  }
+  .number {
+    margin-top: var(--space-xs);
+  }
+  .unit {
+    margin-top: var(--space-sm);
+  }
+</style>

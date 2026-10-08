@@ -1,0 +1,9 @@
+---
+// Footnote: small muted text under a link.
+interface Props {
+  text: string;
+}
+const { text } = Astro.props;
+---
+
+<p class="t-footnote t-muted">{text}</p>

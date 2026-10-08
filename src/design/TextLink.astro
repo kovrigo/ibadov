@@ -1,0 +1,31 @@
+---
+// Text link (link): body text, gold 1px underline 0.25em below, hit area at least 44px tall.
+interface Props {
+  href: string;
+  label: string;
+}
+const { href, label } = Astro.props;
+---
+
+<a class="link t-body" href={href}>{label}</a>
+
+<style>
+  .link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--text);
+    text-decoration-line: underline;
+    text-decoration-color: var(--gold);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    transition: color var(--dur-hover) linear;
+  }
+  .link:visited {
+    color: var(--text);
+    text-decoration-color: var(--gold-deep);
+  }
+  .link:hover {
+    color: var(--gold-bright);
+  }
+</style>

@@ -1,0 +1,44 @@
+---
+// Frame: the page shell. <html lang="ru">, the head slot, token variables, fonts,
+// the grain overlay. The floating place is FloatingPlace.astro (placed by the page owner
+// where keyboard order needs it). Frame names no block.
+import { colors, tokenCss } from '../../design/tokens';
+import { fontFaceCss, fontPreloads } from '../../design/fonts';
+import '../../design/base.css';
+
+interface Props {
+  /** URL of the 256px grain tile. */
+  grain: string;
+}
+const { grain } = Astro.props;
+const headCss = `${tokenCss()}\n${fontFaceCss}`;
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content={colors.ink} />
+    {fontPreloads.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
+    <Fragment set:html={`<style>${headCss}</style>`} />
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+    <div class="grain" data-grain aria-hidden="true" style={`background-image: url(${grain})`}></div>
+  </body>
+</html>
+
+<style>
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    pointer-events: none;
+    background-repeat: repeat;
+    background-size: var(--grain-tile) var(--grain-tile);
+    opacity: var(--grain-opacity);
+  }
+</style>
