@@ -146,8 +146,8 @@ img {
   color: var(--text-muted);
 }
 
-/* Display drops to title on narrow wide screens and on phones. */
-@media (orientation: landscape) and (max-aspect-ratio: 155/100), (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+/* Display drops to title on narrow wide screens and on phones lying down. */
+@media (orientation: landscape) and (max-aspect-ratio: 155/100), (orientation: landscape) and (max-height: 500px) {
   .t-display {
     font-size: var(--title-size);
     line-height: var(--title-lh);
