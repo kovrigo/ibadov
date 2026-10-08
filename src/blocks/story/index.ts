@@ -3,7 +3,7 @@
 // Contract for motion blocks (camera, accents, opening):
 // - story.scenes() lists the six scene sections in page order. The opening overlay is not a
 //   scene: it goes in the hero's accent place, over the hero image and under the hero text,
-//   so the Telegram button stays on top. The "before-hero" slot stays free.
+//   so the Telegram button stays on top.
 // - section: the <section data-scene="…">. It never moves; move what is inside it.
 // - media:   the scene's image box ([data-media], ink background, overflow hidden).
 // - stacks:  image groups ([data-stack]); each shows only when all its images loaded (only

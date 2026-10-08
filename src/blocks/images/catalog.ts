@@ -94,7 +94,7 @@ export type ImageName = keyof typeof catalog;
 
 /** Textures used as they are (no resizing). */
 export const textures = {
-  grain: { file: 'grain.png', width: 256, height: 256 },
+  grain: { file: 'grain.webp', width: 256, height: 256 },
   'smoke-a': { file: 'smoke-a.webp', width: 512, height: 1024 },
   'smoke-b': { file: 'smoke-b.webp', width: 512, height: 1024 },
 } as const;
@@ -112,15 +112,11 @@ export type LayeredName = keyof typeof layers;
 /** Crop rules from the Brief «Кадрирование», per scene and scheme. */
 export const crops = {
   heroWide: { anchor: { x: 0.62, y: 0.1 }, narrowAnchor: { x: 0.85, y: 0.1 }, narrowBelowAspect: 1.55 },
-  heroVertical: { fit: 'width-top' },
-  freezeWide: { fit: 'height-right', fadePx: 120 },
   freezeVertical: { focusX: 425, anchorY: 0.3 },
-  partnersWide: { fit: 'height-right', fadePx: 120 },
   partnersVertical: { focusX: 445, anchorY: 0.3 },
   finalWide: { anchor: { x: 1, y: 0.1 } },
   // Dome centre in the middle; zoomed in just enough that the face (source x ≥ 600) stays out of frame.
   finalVertical: { centreX: 353, keepOutX: 1235 - aerialVerticalX, anchorY: 0.1 },
-  plate: { anchor: { x: 0.5, y: 0.5 } },
 } as const;
 
 /** Minimum clear space between text and a face (Brief: 40px on the listed screens, 32px anywhere). */

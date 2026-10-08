@@ -93,6 +93,12 @@ describe('passes and cuts', () => {
     // A scene taller than the screen can still be "60% visible".
     expect(m.visibleShare(0, 2 * vh, vh)).toBe(1);
   });
+  test('zero sizes give numbers, never NaN', () => {
+    expect(m.visibleShare(100, 0, 900)).toBe(0);
+    expect(m.heroProgress(10, 0)).toBe(0);
+    expect(m.passProgress(0, 0, 0, 0)).toBe(1);
+    expect(m.cutOpacity(0, 0, 900)).toBe(1);
+  });
 });
 
 describe('numbers', () => {

@@ -7,12 +7,12 @@ import type { ImageMetadata } from 'astro';
 import path from 'node:path';
 import sharp from 'sharp';
 import { texts } from '../texts';
-import { catalog, layers as layerTable, textures, type ImageName, type LayeredName, type Marks, type TextureName } from './catalog';
+import { catalog, layers as layerTable, textures, type ImageName, type LayeredName, type TextureName } from './catalog';
 
 export { catalog, crops, screens, textToFace, type ImageName, type Marks } from './catalog';
 export * as geometry from './geometry';
 
-const files = import.meta.glob<ImageMetadata>('./assets/*.{webp,png}', { eager: true, import: 'default' });
+const files = import.meta.glob<ImageMetadata>('./assets/*.webp', { eager: true, import: 'default' });
 const assetsDir = path.resolve(process.cwd(), 'src/blocks/images/assets');
 
 function master(file: string): ImageMetadata {
@@ -52,16 +52,6 @@ async function picture(name: ImageName): Promise<Picture> {
   };
 }
 
-/** Layers far to near. Only the nearest carries the scene description; the rest are decorative. */
-function layers(name: LayeredName): { name: ImageName; alt: string }[] {
-  const names = layerTable[name];
-  return names.map((n, i) => ({ name: n, alt: i === names.length - 1 ? texts.description('hero') : '' }));
-}
-
-function marks(name: ImageName): Marks {
-  return catalog[name].marks;
-}
-
 /**
  * A tiny, already-soft preview of a layered frame as a data URI (well under 2 KB): 27px tall,
  * the frame's own aspect, softened before encoding. JPEG without chroma subsampling keeps the grade.
@@ -85,9 +75,10 @@ async function preview(name: LayeredName): Promise<string> {
   return `data:image/jpeg;base64,${data.toString('base64')}`;
 }
 
-/** Texture URL: the master file itself, unchanged. */
-function texture(name: TextureName): string {
-  return master(textures[name].file).src;
+/** Texture: the master file itself, unchanged, with its pixel size. */
+function texture(name: TextureName): { src: string; width: number; height: number } {
+  const { file, width, height } = textures[name];
+  return { src: master(file).src, width, height };
 }
 
 /** Link-card image: JPEG for every messenger. */
@@ -97,4 +88,4 @@ async function card(): Promise<{ src: string; width: number; height: number; alt
   return { src: img.src, width: entry.width, height: entry.height, alt: texts.description('card') };
 }
 
-export const images = { picture, layers, marks, preview, texture, card };
+export const images = { picture, preview, texture, card };

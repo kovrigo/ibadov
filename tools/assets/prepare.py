@@ -7,7 +7,7 @@ committed prep files (AI fills, Sergey mattes). Free and local; the page build
 never runs it. See the plan, section «Подготовка изображений».
 
 Usage: uv run tools/assets/prepare.py
-Writes src/blocks/images/assets/*.webp (lossless), grain.png and manifest.json.
+Writes src/blocks/images/assets/*.webp (lossless) and manifest.json.
 Exits non-zero when a check fails. Coordinates are source pixels (1672x941
 frames), as in the Brief.
 
@@ -21,7 +21,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 from pymatting import estimate_foreground_ml
 
-from grade import grade, checks as grade_checks
+from grade import grade, lum, checks as grade_checks
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "src/blocks/images/assets"
@@ -39,10 +39,6 @@ def load(p: Path) -> np.ndarray:
 
 def gray(p: Path) -> np.ndarray:
     return np.asarray(Image.open(p).convert("L"), dtype=np.float32) / 255
-
-
-def lum(a: np.ndarray) -> np.ndarray:
-    return 0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2]
 
 
 def _box(m: np.ndarray, r: int, axis: int) -> np.ndarray:
@@ -294,7 +290,6 @@ def balcony():
     cols = poly([[(0, 0), (605, 0), (605, 175), (668, 178), (668, 232), (652, 236), (652, 600), (646, 828), (0, 828)]])
     ledge = poly([[(0, 828), (700, 828), (700, 941), (0, 941)]])
     near = np.maximum(sergey, blur(np.maximum(cols, ledge), 1.2) * (1 - grow(sergey, -2)))
-    near = np.maximum(near, sergey)
     return clean, plate, band, near, sergey
 
 
@@ -344,7 +339,7 @@ def textures():
     rgba = np.zeros((256, 256, 4), np.uint8)
     rgba[..., :3] = np.where(n[..., None] > 0, 255, 0)
     rgba[..., 3] = (np.clip(np.abs(n) / 2.5, 0, 1) * 255).astype(np.uint8)
-    Image.fromarray(rgba).save(ASSETS / "grain.png", optimize=True)
+    Image.fromarray(rgba).save(ASSETS / "grain.webp", lossless=True, method=6, exact=True)
     smoke = np.array([0xCF, 0xC6, 0xB8], np.float32) / 255
     for i, name in enumerate(["smoke-a", "smoke-b"]):
         w, h = 512, 1024
@@ -425,7 +420,7 @@ def main() -> None:
     for name, size in sizes.items():
         need(Image.open(ASSETS / f"{name}.webp").size == size, f"{name} is {size[0]}x{size[1]}")
 
-    files = sorted([p for p in ASSETS.glob("*.webp")] + [ASSETS / "grain.png"]) + sorted((SRC).glob("*")) + sorted(PREP.glob("*.png"))
+    files = sorted(ASSETS.glob("*.webp")) + sorted((SRC).glob("*")) + sorted(PREP.glob("*.png"))
     manifest = {
         "checks": "pass" if not problems else "fail",
         "problems": problems,

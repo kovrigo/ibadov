@@ -3,8 +3,9 @@
 // from navigation start for the intro and hero images; ready and still at the top → play 0–4.7 s;
 // otherwise the first screen at once with the headline fading in. A tap outside the button, the
 // wheel, a scroll or any key → the ready first screen in 240ms. The Telegram button is a plain
-// link and is never intercepted. Reduced motion (or switched on mid-intro): the ready first screen.
-// Returns a promise that resolves when the first screen is ready.
+// link and is never intercepted; leaving through it marks the intro seen. Reduced motion (or
+// switched on mid-intro): the ready first screen. Returns a promise that resolves when the first
+// screen is ready.
 import { story } from '../story';
 import { onMotionSettingChange, prefersReducedMotion } from '../../platform/motion-setting';
 import { clearStyle, ease, now, onFrame, setStyle, tween, type MotionProp } from '../../platform/motion-loop';
@@ -131,13 +132,17 @@ export function startOpening(): Promise<void> {
     skip();
   }
 
-  const play = () => {
-    state = 'play';
+  const markSeen = () => {
     try {
       localStorage.setItem(SEEN_KEY, '1');
     } catch {
       // Storage refused after the head check: the intro still plays this once.
     }
+  };
+
+  const play = () => {
+    state = 'play';
+    markSeen();
     takeOver(introFrame(0));
     const start = now();
     cancel = onFrame((t) => {
@@ -158,6 +163,18 @@ export function startOpening(): Promise<void> {
     cls.add('intro-fade');
     setTimeout(resolveReady, motion.duration.title);
   };
+
+  // Leaving through a link (Telegram) counts as seen, played or not: Back never starts the
+  // intro (Scope «Вступление и движение»). Leaving mid-intro: the page comes back from the
+  // back-forward cache with the first screen ready, not mid-intro.
+  addEventListener(
+    'click',
+    (e) => {
+      if ((e.target as Element | null)?.closest?.('a[href]')) markSeen();
+    },
+    { capture: true },
+  );
+  addEventListener('pagehide', finish);
 
   if (!overlay || !aerial || !stack || !layers.length) {
     fallback();

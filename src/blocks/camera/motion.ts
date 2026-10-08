@@ -53,6 +53,9 @@ interface Cue {
 
 const lift = m.lift;
 
+/** A scene within a quarter screen of the screen: the camera keeps moving it. */
+const nearScreen = (top: number, height: number, vh: number) => top + height >= -0.25 * vh && top <= 1.25 * vh;
+
 function parseAnchor(css: string): [number, number] {
   const [x, y] = css.split(/\s+/).map((v) => (v.endsWith('%') ? Number.parseFloat(v) / 100 : 0.5));
   return [Number.isFinite(x) ? x! : 0.5, Number.isFinite(y) ? y! : 0.5];
@@ -126,11 +129,10 @@ export function startCamera(): void {
   // ---- Start states and one-off plays ----
 
   const cues: Cue[] = [];
-  const textCue = (v: View | undefined, play: () => void, hide: () => void, el?: El | null) => {
-    const target = el ?? (v && q(v.scene.text));
-    if (!target) return;
+  const textCue = (text: El | null | undefined, play: () => void, hide: () => void) => {
+    if (!text) return;
     cues.push({
-      el: target,
+      el: text,
       top: 0,
       bottom: 0,
       // Text plays when its top passes 85% of the screen.
@@ -191,7 +193,7 @@ export function startCamera(): void {
   for (const name of ['services', 'final'] as const) {
     const v = view(name);
     const text = v && q(v.scene.text);
-    textCue(v, () => showText(text!), () => hideText(text!));
+    textCue(text, () => showText(text!), () => hideText(text!));
   }
 
   // Partners: the text group, then the names 240ms apart and the line between them.
@@ -202,7 +204,7 @@ export function startCamera(): void {
     const names = [rule?.previousElementSibling as El | null, rule?.nextElementSibling as El | null];
     const s = m.partnersSchedule();
     textCue(
-      v,
+      text,
       () => {
         showText(text!);
         names.forEach((n, i) => fade(n, s.names[i]!));
@@ -320,12 +322,12 @@ export function startCamera(): void {
       const vh = innerHeight;
       for (const v of views.values()) {
         const top = v.top - y;
-        if (top + v.height < -0.25 * vh || top > 1.25 * vh) continue;
+        if (!nearScreen(top, v.height, vh)) continue;
         set(v.media, 'opacity', m.num(m.cutOpacity(top, v.height, vh)));
       }
       if (hero) {
         const p = m.heroProgress(y, hero.height);
-        if (hero.top - y + hero.height > -0.25 * vh) {
+        if (nearScreen(hero.top - y, hero.height, vh)) {
           for (const st of heroStacks) {
             if (!st.shown) continue;
             set(st.el, 'transform', m.scaleAbout(m.heroScale(p), st.anchor[0], st.anchor[1], st.w, st.h));
@@ -335,12 +337,12 @@ export function startCamera(): void {
       }
       for (const { v, img } of plates) {
         const top = v.top - y;
-        if (top + v.height < -0.25 * vh || top > 1.25 * vh) continue;
+        if (!nearScreen(top, v.height, vh)) continue;
         set(img, 'transform', lift(m.plateOffset(m.passProgress(top, v.height, vh, docHeight - v.top), vh)));
       }
       for (const { v, el } of pushes) {
         const top = v.top - y;
-        if (top + v.height < -0.25 * vh || top > 1.25 * vh) continue;
+        if (!nearScreen(top, v.height, vh)) continue;
         set(el, 'transform', `scale(${m.num(m.passScale(m.passProgress(top, v.height, vh, docHeight - v.top)))})`);
       }
       if (freeze && freezeStack && !frozen) {

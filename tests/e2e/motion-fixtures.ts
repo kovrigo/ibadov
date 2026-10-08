@@ -43,4 +43,4 @@ export function effectiveOpacity(page: Page, selector: string): Promise<number> 
   }, selector);
 }
 
-export const TELEGRAM = 'https://t.me/ibadow';
+export { SEEN_KEY } from '../../src/blocks/opening/gate';

@@ -3,7 +3,7 @@
 // (reducedMotion: reduce), with each scene scrolled so its top meets the viewport top.
 // Failures name the screen, the scene and the measured number.
 import { expect, test } from '@playwright/test';
-import { catalog } from '../../src/blocks/images/catalog';
+import { catalog, screens, textToFace } from '../../src/blocks/images/catalog';
 import {
   TELEGRAM,
   boxOf,
@@ -29,14 +29,10 @@ import {
   type SceneName,
 } from './helpers';
 
-const WIDE_TEN: readonly (readonly [number, number])[] = [
-  [1024, 768], [1200, 800], [1280, 720], [1280, 800], [1280, 1024],
-  [1366, 768], [1440, 900], [1920, 1080], [1920, 1200], [2560, 1440],
-];
+// The Brief's ten wide screens, the phone lying down (wide scheme, from the plan), the six vertical.
 const LYING: readonly [number, number] = [740, 360];
-const VERTICAL: readonly (readonly [number, number])[] = [
-  [360, 780], [375, 667], [390, 844], [430, 932], [768, 1024], [820, 1180],
-];
+const WIDE_TEN = screens.wide.filter(([w, h]) => w !== LYING[0] || h !== LYING[1]);
+const VERTICAL = screens.vertical;
 
 const FRAMED: SceneName[] = ['hero', 'freeze', 'partners', 'final'];
 const ALL_SCENES: SceneName[] = ['hero', 'services', 'freeze', 'numbers', 'partners', 'final'];
@@ -106,7 +102,7 @@ for (const [w, h] of [...WIDE_TEN, LYING, ...VERTICAL]) {
               nearestText = `«${t.text}» (${fmt(boxOf(t))})`;
             }
           }
-          const need = scene === 'hero' && isTen ? 40 : 32;
+          const need = scene === 'hero' && isTen ? textToFace.listed : textToFace.anywhere;
           expect.soft(nearest, `${where}: text-to-face distance, px (needs ${need}); nearest ${nearestText}, face ${fmt(marks.face)}`).toBeGreaterThanOrEqual(need - 0.01);
           summary.push(`${scene} text-face ${round(nearest)}px`);
         }
@@ -194,18 +190,15 @@ for (const [w, h] of [...WIDE_TEN, LYING, ...VERTICAL]) {
       expect.soft(await page.evaluate(inPageFilters), `${screen}: elements with a CSS filter or backdrop-filter`).toEqual([]);
 
       // ---- Proportions ----
-      // Every scene's pictures have been scrolled past, so their requests are out. Give them a moment to land;
-      // a picture that has not arrived by then is listed, not judged (the dev server encodes images on demand).
-      await page
-        .waitForFunction(
-          () =>
-            [...document.images].every(
-              (i) => i.getBoundingClientRect().width === 0 || i.currentSrc.startsWith('data:') || (i.complete && i.naturalWidth > 1),
-            ),
-          null,
-          { timeout: 30_000, polling: 500 },
-        )
-        .catch(() => undefined);
+      // Every scene's pictures have been scrolled past, so their requests are out: wait for them to land.
+      await page.waitForFunction(
+        () =>
+          [...document.images].every(
+            (i) => i.getBoundingClientRect().width === 0 || i.currentSrc.startsWith('data:') || (i.complete && i.naturalWidth > 1),
+          ),
+        null,
+        { timeout: 30_000, polling: 500 },
+      );
       const images = await page.evaluate(inPageImages, null);
       const unverified: string[] = [];
       let checked = 0;
@@ -228,7 +221,9 @@ for (const [w, h] of [...WIDE_TEN, LYING, ...VERTICAL]) {
         expect.soft(Math.abs(natural / (entry.width / entry.height) - 1), `${screen} ${id}: loaded file aspect ${round(natural, 4)} against catalog ${round(entry.width / entry.height, 4)}`).toBeLessThanOrEqual(0.01);
       }
 
-      console.log(`[design] ${screen}: ${summary.join(' | ')} | proportions checked on ${checked} loaded images${unverified.length ? `, not loaded in time: ${unverified.join(', ')}` : ''}`);
+      expect.soft(unverified, `${screen}: images not loaded`).toEqual([]);
+      expect.soft(checked, `${screen}: images whose proportions were checked`).toBeGreaterThan(0);
+      console.log(`[design] ${screen}: ${summary.join(' | ')} | proportions checked on ${checked} loaded images`);
     });
   });
 }

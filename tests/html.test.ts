@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import sharp from 'sharp';
 import { texts } from '../src/blocks/texts';
 
 // Checks dist/index.html after `SITE_URL=… bun run build`.
@@ -76,6 +77,13 @@ describe('built page', () => {
     expect(meta('property', 'og:image:height')).toBe('630');
     expect(meta('property', 'og:image:alt')).toBe(texts.description('hero'));
     expect(meta('name', 'twitter:card')).toBe('summary_large_image');
+  });
+
+  test('the link card image is in the build: a 1200×630 JPEG', async () => {
+    const image = path.join(path.dirname(file), decodeURIComponent(new URL(meta('property', 'og:image')).pathname));
+    expect(existsSync(image)).toBe(true);
+    const m = await sharp(image).metadata();
+    expect([m.format, m.width, m.height]).toEqual(['jpeg', 1200, 630]);
   });
 
   test('no other words: every text on the page comes from the texts block', () => {

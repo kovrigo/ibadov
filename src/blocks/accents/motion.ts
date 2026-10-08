@@ -1,7 +1,8 @@
 // Accents (level 2): the glint on the watch, the smoke and the cigar's reveal, and the film
-// grain's jitter. Finds its markup in the story's accent places; the glint follows the image
-// layer that carries the watch. Reduced motion: does nothing; switched on while the page is
-// open, it stops at once (cigar drawn, no smoke, no glint, grain still).
+// grain's jitter (a CSS animation in Accents.astro, switched on here). Finds its markup in the
+// story's accent places; the glint follows the image layer that carries the watch. Reduced
+// motion: does nothing; switched on while the page is open, it stops at once (cigar drawn, no
+// smoke, no glint, grain still).
 import { story } from '../story';
 import { onMotionSettingChange, prefersReducedMotion } from '../../platform/motion-setting';
 import {
@@ -234,7 +235,7 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
             set(art, 'willChange', 'transform');
             const stop = keep(
               tween({
-                duration: 900,
+                duration: a.cigar.duration,
                 easing: ease.camera,
                 update: (k) => {
                   set(win, 'transform', `translate3d(${num(-100 * (1 - k))}%, 0, 0)`);
@@ -256,25 +257,19 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     }
   }
 
-  // ---- Grain: stepped jitter, about 12 steps a second ----
+  // ---- Grain: about 12 steps a second, on the compositor (Accents.astro) ----
 
   const grain = document.querySelector<El>('[data-grain]');
-  let grainStep = Number.NEGATIVE_INFINITY;
-  if (grain) set(grain, 'willChange', 'transform');
+  if (grain) grain.dataset.jitter = '';
 
-  // ---- One task drives glint timing, smoke and grain; it pauses with the page loop ----
+  // ---- One task drives glint timing and smoke; it pauses with the page loop ----
 
   let last = now();
   let running = false;
+  let stopTick = () => {};
   const tick = (t: number) => {
     const dt = Math.min(t - last, 100);
     last = t;
-
-    if (grain && t - grainStep >= 83) {
-      grainStep = t;
-      const j = () => Math.round((Math.random() * 2 - 1) * 24);
-      set(grain, 'transform', `translate3d(${j()}px, ${j()}px, 0)`);
-    }
 
     // Phone: glint and smoke never together. A waiting glint makes the smoke give way first.
     const onPhone = phone.matches;
@@ -309,17 +304,19 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     }
 
     const busy =
-      !!grain ||
       smokes.some((s) => s.visible || s.level > 0) ||
       glints.some((g) => g.playing || (pending(g) && (!g.hero || heroReadyAt < Number.POSITIVE_INFINITY)));
-    if (!busy) running = false;
+    if (!busy) {
+      running = false;
+      offs.delete(stopTick);
+    }
     return busy;
   };
   function wake() {
     if (running || stopped) return;
     running = true;
     last = now();
-    keep(onFrame(tick));
+    stopTick = keep(onFrame(tick));
   }
   wake();
 
@@ -338,6 +335,7 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
       }
       if (win) clearStyle(win);
       if (art) clearStyle(art);
+      if (grain) delete grain.dataset.jitter;
     }),
   );
 }

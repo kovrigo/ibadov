@@ -55,7 +55,6 @@ export const ease = {
   camera: fromCss(motion.easing.camera),
   enter: fromCss(motion.easing.enter),
   exit: fromCss(motion.easing.exit),
-  linear: clamp01,
 } satisfies Record<string, Easing>;
 
 // ---- Clock: milliseconds that do not pass while the tab is hidden ----

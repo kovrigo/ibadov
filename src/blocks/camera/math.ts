@@ -62,8 +62,10 @@ export function cutOpacity(top: number, height: number, viewportHeight: number):
 
 /** Share of a scene on screen, against the smaller of its height and the screen's. */
 export function visibleShare(top: number, height: number, viewportHeight: number): number {
+  const whole = Math.min(height, viewportHeight);
+  if (whole <= 0) return 0;
   const seen = Math.min(top + height, viewportHeight) - Math.max(top, 0);
-  return clamp01(seen / Math.min(height, viewportHeight));
+  return clamp01(seen / whole);
 }
 
 /** Scale s around (ox, oy), fractions of a w×h box, as a transform for the default centre origin. */

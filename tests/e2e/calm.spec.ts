@@ -4,7 +4,6 @@ import { effectiveOpacity, firstWith, htmlHas, recordClasses } from './motion-fi
 // The calm version (Brief «Спокойная версия», DESIGN.md Motion): with reduced motion nothing moves
 // or scales, there is no intro, no smoke, no glint; the freeze frame is muted with its caption,
 // the cigar is drawn, all content is there. Turned on mid-intro: the ready first screen at once.
-test.describe.configure({ mode: 'serial' });
 
 const SIZES = [
   { width: 1440, height: 900 },

@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import sharp from 'sharp';
 import { catalog, textures } from '../catalog';
 
 const dir = path.join(import.meta.dir, '..', 'assets');
@@ -28,5 +29,12 @@ test('every listed file matches its sha256', () => {
 test('every master the page uses is listed', () => {
   for (const { file } of [...Object.values(catalog), ...Object.values(textures)]) {
     expect(manifest.files[file]).toBeString();
+  }
+});
+
+test('every master has the pixel size the catalog gives it', async () => {
+  for (const [name, { file, width, height }] of [...Object.entries(catalog), ...Object.entries(textures)]) {
+    const meta = await sharp(path.join(dir, file)).metadata();
+    expect({ name, width: meta.width, height: meta.height }).toEqual({ name, width, height });
   }
 });

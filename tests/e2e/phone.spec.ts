@@ -273,3 +273,20 @@ test.describe('phone lying down 740x360', () => {
     expect.soft(headline, `${screen}: hero headline font-size, px (title = ${title})`).toBe(title);
   });
 });
+
+test.describe('phone turned 390x844 → 844x390', () => {
+  test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+
+  test('the wide image group waits for its real images, then shows', async ({ page }) => {
+    await open(page);
+    const wide = page.locator('[data-scene="hero"] [data-stack="wide"]');
+    // Upright, its layers show the 1px blank: the group counts as loading, not ready.
+    await expect(wide).toHaveAttribute('data-loading', '');
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(wide).not.toHaveAttribute('data-loading', { timeout: 15_000 });
+    const layers = await wide.locator('img').evaluateAll((els) =>
+      els.map((i) => ({ layer: (i as HTMLImageElement).dataset.layer, blank: (i as HTMLImageElement).currentSrc.startsWith('data:'), loaded: (i as HTMLImageElement).naturalWidth > 1 })),
+    );
+    for (const l of layers) expect(l).toEqual({ layer: l.layer, blank: false, loaded: true });
+  });
+});

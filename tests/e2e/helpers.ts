@@ -319,29 +319,17 @@ export function inPageBar(): BarInfo {
 // In the test
 // ---------------------------------------------------------------------------------------------
 
-/**
- * Open the page and wait until the fonts are in, so every box is measured in its final type.
- * The dev server may reload the page once while another change is being saved: that destroys the
- * evaluation context, so the wait is repeated (at most three times) after such a reload.
- */
+/** Open the page and wait until the fonts are in, so every box is measured in its final type. */
 export async function open(page: Page): Promise<void> {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      await page.evaluate(async () => {
-        await Promise.all([
-          document.fonts.load('400 16px Oranienbaum', 'Сергей Ибадов №1'),
-          document.fonts.load('400 16px Jost', 'Сергей Ибадов'),
-          document.fonts.load('500 16px Jost', 'Написать в Telegram'),
-        ]);
-        await document.fonts.ready;
-      });
-      return;
-    } catch (error) {
-      if (attempt >= 3 || !/Execution context was destroyed|navigation/i.test(String(error))) throw error;
-      await page.waitForLoadState('domcontentloaded');
-    }
-  }
+  await page.evaluate(async () => {
+    await Promise.all([
+      document.fonts.load('400 16px Oranienbaum', 'Сергей Ибадов №1'),
+      document.fonts.load('400 16px Jost', 'Сергей Ибадов'),
+      document.fonts.load('500 16px Jost', 'Написать в Telegram'),
+    ]);
+    await document.fonts.ready;
+  });
 }
 
 export async function layout(page: Page): Promise<Layout> {

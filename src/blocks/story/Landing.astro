@@ -1,8 +1,7 @@
 ---
-// The Landing screen: the six scenes in the Brief's order. Slots: "before-hero" (the opening
-// overlay) and "accent-<scene>" for each scene; all empty at level 1. The phone bar (Contact's
-// widget in the Frame's floating place) comes right after the hero, so the keyboard reaches it
-// right after the hero text.
+// The Landing screen: the six scenes in the Brief's order. Slots: "accent-<scene>" for each
+// scene, all empty at level 1. The phone bar (Contact's widget in the Frame's floating place)
+// comes right after the hero, so the keyboard reaches it right after the hero text.
 import './scene.css';
 import Hero from './scenes/Hero.astro';
 import Services from './scenes/Services.astro';
@@ -14,7 +13,6 @@ import { PhoneBar } from '../contact';
 ---
 
 <main>
-  <slot name="before-hero" />
   <Hero><slot name="accent-hero" slot="accent" /></Hero>
   <PhoneBar />
   <Services><slot name="accent-services" slot="accent" /></Services>
@@ -28,10 +26,11 @@ import { PhoneBar } from '../contact';
   // Loading state (Brief «Состояния»): an image group shows only when all its images are ready,
   // then fades in (240ms, 200ms in the calm version — set in scene.css). Only this script hides
   // anything; without scripts the images simply appear as they load. A failed image keeps its
-  // group on ink.
+  // group on ink. A layer of the other screen shape shows a 1px blank (Layer.astro): its group
+  // waits until a turn of the screen loads the real images.
   for (const stack of document.querySelectorAll<HTMLElement>('[data-stack]')) {
     const imgs = [...stack.querySelectorAll('img')];
-    const ready = () => imgs.every((img) => img.complete && img.naturalWidth > 0);
+    const ready = () => imgs.every((img) => img.complete && img.naturalWidth > 0 && !img.currentSrc.startsWith('data:'));
     if (ready()) continue;
     stack.dataset.loading = '';
     let failed = false;

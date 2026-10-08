@@ -26,6 +26,15 @@ describe('smoke', () => {
     expect(smokeCycle(9000)).toBe(10_000);
     expect(smokeCycle(12_000)).toBe(12_000);
     expect(smokeCycle(20_000)).toBe(14_000);
+    // A missing data-cycle reads as NaN.
+    expect(smokeCycle(Number.NaN)).toBe(10_000);
+    expect(smokeCycle(0)).toBe(10_000);
+  });
+  test('any phase wraps into one cycle (the motion script passes time ÷ cycle)', () => {
+    expect(smokeFrame(1.5, 60)).toEqual(smokeFrame(0.5, 60));
+    expect(smokeFrame(7.25, 60).y).toBeCloseTo(smokeFrame(0.25, 60).y, 9);
+    expect(smokeFrame(-0.25, 60).y).toBeCloseTo(smokeFrame(0.75, 60).y, 9);
+    for (const p of [-3.3, 12.7, 100.01]) expect(smokeFrame(p, 60).opacity).toBeLessThanOrEqual(0.35 + 1e-9);
   });
   test('it only rises, and is invisible where the cycle wraps', () => {
     expect(smokeFrame(0, 60).y).toBeCloseTo(0, 9);

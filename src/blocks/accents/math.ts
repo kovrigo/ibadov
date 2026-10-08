@@ -22,6 +22,9 @@ export function glintBand(k: number): { x: number; opacity: number } {
 /** True when a glint last played at `last` may play again at `time`. */
 export const glintAllowed = (time: number, last: number) => time - last >= glint.gap;
 
+/** Cigar: drawn as a line on the final's entry in 900ms. */
+export const cigar = { duration: motion.duration.cut } as const;
+
 /** Smoke: opacity never above 0.35, one cycle 10–14 s. */
 export const smoke = {
   maxOpacity: depth.smokeMaxOpacity,

@@ -25,8 +25,8 @@ const DEVICES = [
   { name: 'phone 390x844', viewport: { width: 390, height: 844 }, phone: true },
 ] as const;
 
-/** A lazy image arrives when its scene is scrolled to; the dev server encodes on demand, so wait long. */
-const IMAGE_WAIT = 150_000;
+/** A lazy image arrives when its scene is scrolled to. */
+const IMAGE_WAIT = 30_000;
 
 /** The Telegram button as the visitor sees it: in its scene on a computer, in the bar on a phone. */
 async function checkTelegramButtons(page: Page, tag: string, phone: boolean) {
@@ -171,7 +171,7 @@ for (const d of DEVICES) {
         const area = window.innerWidth * window.innerHeight;
         const out: string[] = [];
         for (const el of document.body.querySelectorAll('*')) {
-          if (el.closest('[data-scene], [data-grain], [data-phone-bar]') || el.contains(hero) || el.tagName === 'ASTRO-DEV-TOOLBAR') continue;
+          if (el.closest('[data-scene], [data-grain], [data-phone-bar]') || el.contains(hero)) continue;
           const r = el.getBoundingClientRect();
           const cs = getComputedStyle(el);
           if (r.width * r.height >= 0.5 * area && cs.visibility === 'visible' && cs.display !== 'none' && parseFloat(cs.opacity) > 0) {
@@ -216,7 +216,7 @@ for (const d of DEVICES) {
 
     test('images blocked: texts and the button stay, on ink', async ({ page }) => {
       test.setTimeout(240_000);
-      // The Brief's file patterns, and every image request: the dev server serves pictures as /_image?href=...
+      // The Brief's file patterns, and every image request.
       await page.route('**/*', (route) => {
         const request = route.request();
         const byName = /\.(webp|avif|png|jpg)(\?|$)/.test(new URL(request.url()).pathname + new URL(request.url()).search);

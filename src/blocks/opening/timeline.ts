@@ -20,8 +20,6 @@ export const intro = {
   /** 3.8 s: headline and lead. */
   headline: [3800, 3800 + motion.duration.title],
   end: 4700,
-  /** The first screen's glint, 600ms after the end. */
-  glint: 5300,
   /** Tap, scroll or a key: the ready first screen in 240ms. */
   skip: motion.duration.small,
 } as const;

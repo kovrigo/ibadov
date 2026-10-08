@@ -16,8 +16,6 @@ export const colors = {
 const serif = "Oranienbaum, 'Oranienbaum Fallback', 'Times New Roman', serif";
 const sans = "Jost, 'Jost Fallback', 'Century Gothic', Arial, sans-serif";
 
-export const fontFamilies = { serif, sans } as const;
-
 export interface TypeRole {
   fontFamily: string;
   fontWeight: number;
@@ -121,7 +119,6 @@ export function tokenCss(): string {
     `--image-fade: ${depth.imageFade}`,
     `--grain-opacity: ${depth.grainOpacity}`,
     `--grain-tile: ${depth.grainTile}`,
-    `--smoke-max-opacity: ${depth.smokeMaxOpacity}`,
   );
   for (const [name, ms] of Object.entries(motion.duration)) {
     vars.push(`--dur-${name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}: ${ms}ms`);

@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "bun test ./tests/architecture.test.ts && astro build",
-    "test:unit": "bun test ./src ./tests/architecture.test.ts",
+    "build": "bun test ./tests/architecture.test.ts ./tests/motion-properties.test.ts ./src/blocks/images/tests/manifest.test.ts && astro build",
+    "test:unit": "bun test ./src ./tests/architecture.test.ts ./tests/motion-properties.test.ts",
     "test:html": "bun test ./tests/html.test.ts",
     "test:e2e": "playwright test"
   },

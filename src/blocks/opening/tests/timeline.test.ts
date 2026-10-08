@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { intro, introFrame, layerZoom, readyFrame } from '../timeline';
+import { intro, introFrame, layerZoom, readyFrame, scaleAbout } from '../timeline';
 import { motion } from '../../../design/tokens';
 
 describe('intro timeline (Brief «Вступление»)', () => {
-  test('ends at 4.7 s, inside 5 s; glint 600ms later', () => {
+  test('ends at 4.7 s, inside 5 s', () => {
     expect(intro.end).toBe(4700);
     expect(intro.end).toBeLessThanOrEqual(5000);
-    expect(intro.glint - intro.end).toBe(600);
   });
 
   test('0–2.4 s: the aerial pushes in 1.00 → 1.15', () => {
@@ -48,5 +47,13 @@ describe('intro timeline (Brief «Вступление»)', () => {
 
   test('a skip reaches the ready first screen in 240ms', () => {
     expect(intro.skip).toBe(240);
+  });
+
+  test('a layer scales around its crop anchor: the anchor stays still', () => {
+    const [w, h, ax, ay, s] = [1440, 900, 0.62, 0.1, 1.08];
+    const [, tx, ty] = scaleAbout(s, ax, ay, w, h).match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/)!.map(Number);
+    // Default origin is the centre: a point P maps to C + (P − C)·s + t.
+    expect(w / 2 + (ax * w - w / 2) * s + tx!).toBeCloseTo(ax * w, 1);
+    expect(h / 2 + (ay * h - h / 2) * s + ty!).toBeCloseTo(ay * h, 1);
   });
 });

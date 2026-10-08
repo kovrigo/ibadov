@@ -66,14 +66,15 @@ img {
   border: 0;
 }
 
-/* Gutter and the room the phone bar takes at the bottom (Frame's floating place). */
+/* Gutter and the room the phone bar takes at the bottom (Frame's floating place). On a phone
+   lying down the gutter also clears a side notch (viewport-fit=cover). */
 :root {
   --gutter: var(--gutter-desktop);
   --floating-reserve: 0px;
 }
 @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
   :root {
-    --gutter: var(--gutter-phone);
+    --gutter: max(var(--gutter-phone), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
     --floating-reserve: calc(var(--phone-bar) + env(safe-area-inset-bottom, 0px) + var(--space-md));
   }
 }
