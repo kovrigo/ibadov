@@ -227,3 +227,23 @@ for (const [w, h] of [...WIDE_TEN, LYING, ...VERTICAL]) {
     });
   });
 }
+
+// Browser zoom 200–300% on short windows (CSS size = window / zoom): scenes grow taller than the
+// screen, and the text must still keep its 32px from the face (Brief «Кадрирование»).
+for (const [w, h, zoom] of [[640, 317, '1280×633 at 200%'], [512, 253, '1280×633 at 250%'], [427, 211, '1280×633 at 300%'], [480, 263, '1440×789 at 300%']] as const) {
+  test.describe(`${w}x${h}`, () => {
+    test.use({ viewport: { width: w, height: h }, reducedMotion: 'reduce' });
+    test(`browser zoom, ${zoom}: text clear of the face`, async ({ page }) => {
+      await open(page);
+      const l = await layout(page);
+      for (const scene of FRAMED) {
+        await scrollToSceneTop(page, l, scene);
+        const texts = (await page.evaluate(inPageTextBoxes, `[data-scene="${scene}"] [data-text]`)).filter((t) => t.visible);
+        const face = sceneMarks(scene, l.portrait, await page.evaluate(inPageImages, scene)).face!;
+        for (const t of texts) {
+          expect.soft(gap(boxOf(t), face), `${w}x${h} ${scene}: «${t.text}» (${fmt(boxOf(t))}) to the face (${fmt(face)}), px`).toBeGreaterThanOrEqual(textToFace.anywhere - 0.01);
+        }
+      }
+    });
+  });
+}

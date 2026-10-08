@@ -12,9 +12,11 @@ const { name, vars = {}, accent = 'overlay' } = Astro.props;
 const style = Object.entries(vars)
   .map(([k, v]) => `--${k}: ${v}`)
   .join('; ');
+// A text limit is worked out for a picture one screen tall: such a scene keeps it so (scene.css).
+const framed = 'limit' in vars;
 ---
 
-<section class:list={['scene', `scene--${name}`]} data-scene={name} style={style || undefined}>
+<section class:list={['scene', `scene--${name}`, { 'scene--framed': framed }]} data-scene={name} style={style || undefined}>
   <div class="scene__media" data-media><slot name="media" /></div>
   {accent === 'overlay' && <div class="scene__accent" data-accent><slot name="accent" /></div>}
   <div class="scene__column">

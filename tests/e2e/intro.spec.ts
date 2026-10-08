@@ -220,6 +220,23 @@ test('images not ready in 1.5 s: no intro, the first screen with the headline fa
   await ctx.close();
 });
 
+test('a key press while the intro waits for its images: the first screen, and no intro next visit', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await ctx.route(/\.(avif|webp)$/, async (route) => {
+    await sleep(2500);
+    await route.continue().catch(() => undefined);
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => document.documentElement.className)).toContain('intro-wait');
+  await page.keyboard.press('Shift');
+  await htmlLacks(page, 'intro-wait', 1000);
+  await htmlLacks(page, 'intro-on', 1000);
+  expect(await page.evaluate((k) => localStorage.getItem(k), SEEN_KEY)).toBe('1');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  expect(await page.evaluate(() => document.documentElement.className)).not.toContain('intro-wait');
+  await ctx.close();
+});
+
 test('a motion script later than the 2.5 s reveal: the headline does not fade in twice', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
   await recordHeadline(ctx);

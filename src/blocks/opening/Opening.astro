@@ -55,6 +55,11 @@ const style = Object.entries(vars)
     opacity: 0;
   }
   @media (orientation: landscape) {
+    /* As the hero's wide picture: one screen tall at the scene's top (story scene.css). */
+    .opening {
+      bottom: auto;
+      height: 100svh;
+    }
     .opening__aerial {
       width: var(--wide-w);
       height: var(--wide-h);

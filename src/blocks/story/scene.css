@@ -96,6 +96,26 @@
     background: linear-gradient(to right, var(--scrim) calc(100% - var(--scrim-fade)), transparent);
   }
 }
+/* --limit is worked out for a picture one screen tall (cqh is the small viewport height in the
+   column). A scene taller than the screen (a short window, browser zoom) keeps its picture one
+   screen tall at the top, fading into ink: a taller picture would bring the face into the text. */
+@media (orientation: landscape) {
+  .scene--framed .scene__media {
+    bottom: auto;
+    height: 100svh;
+  }
+  .scene--framed::after {
+    --overflow-fade: min(var(--image-fade), 100% - 100svh);
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset-inline: 0;
+    top: calc(100svh - var(--overflow-fade));
+    height: var(--overflow-fade);
+    background: linear-gradient(to bottom, transparent, var(--ink));
+    pointer-events: none;
+  }
+}
 @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
   .scene__column {
     max-width: min(var(--text-column), var(--limit-narrow, var(--limit, var(--text-column))));

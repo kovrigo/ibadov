@@ -2,8 +2,9 @@
 // The head script already chose: "intro-wait" means the intro may play. Here: wait up to 1.5 s
 // from navigation start for the intro and hero images; ready and still at the top → play 0–4.7 s;
 // otherwise the first screen at once with the headline fading in. A tap outside the button, the
-// wheel, a scroll or any key → the ready first screen in 240ms. The Telegram button is a plain
-// link and is never intercepted; leaving through it marks the intro seen. Reduced motion (or
+// wheel, a scroll or any key → the ready first screen in 240ms, and the intro counts as seen even
+// if it had not started. The Telegram button is a plain link and is never intercepted; leaving
+// through it marks the intro seen. Reduced motion (or
 // switched on mid-intro): the ready first screen. Returns a promise that resolves when the first
 // screen is ready.
 import { story } from '../story';
@@ -135,6 +136,8 @@ export function startOpening(): Promise<void> {
   function onInput(e: Event) {
     // The Telegram button (any link) works as a normal link during the intro.
     if (e.type === 'pointerdown' && (e.target as Element | null)?.closest?.('a[href]')) return;
+    // Skipped while waiting for its images: the visitor chose the first screen, next visit too.
+    markSeen();
     skip();
   }
 
