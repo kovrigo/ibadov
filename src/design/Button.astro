@@ -58,10 +58,26 @@ const { href, label, block = false } = Astro.props;
     width: 100%;
     height: var(--button-height-block);
     justify-content: space-between;
+    gap: var(--space-md);
     padding-inline: var(--space-lg);
   }
   .arrow {
     flex: none;
+  }
+  /* Phones narrower than 375px: the narrow screens' tracking, so label and arrow fit the frame.
+     Narrower than 349px the arrow would still cross the frame: the label alone, centred. */
+  @media (max-width: 374px) {
+    .button--block {
+      letter-spacing: 0.2em;
+    }
+  }
+  @media (max-width: 348px) {
+    .button--block {
+      justify-content: center;
+    }
+    .button--block .arrow {
+      display: none;
+    }
   }
   /* Screens narrower than 1.55:1 leave the text column less room before the face: a tighter frame. */
   @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
