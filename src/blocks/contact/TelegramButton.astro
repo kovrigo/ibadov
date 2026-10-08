@@ -1,0 +1,26 @@
+---
+// Widget: the Telegram button. `scene` placement (first screen, final) hides itself on phones,
+// where the phone bar carries the only button. Same tab: Back returns to the page.
+import Button from '../../design/Button.astro';
+import { texts } from '../texts';
+interface Props {
+  placement?: 'scene' | 'bar';
+}
+const { placement = 'scene' } = Astro.props;
+const { telegram } = texts.contacts();
+---
+
+<div class:list={['telegram', `telegram--${placement}`]} data-telegram={placement}>
+  <Button href={telegram.url} label={telegram.label} block={placement === 'bar'} />
+</div>
+
+<style>
+  .telegram--scene {
+    display: flex;
+  }
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .telegram--scene {
+      display: none;
+    }
+  }
+</style>

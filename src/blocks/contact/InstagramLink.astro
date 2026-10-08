@@ -1,0 +1,20 @@
+---
+// Widget: the Instagram text link with the Meta footnote under it.
+import TextLink from '../../design/TextLink.astro';
+import Footnote from '../../design/Footnote.astro';
+import { texts } from '../texts';
+const { instagram, footnote } = texts.contacts();
+---
+
+<div class="instagram">
+  <p><TextLink href={instagram.url} label={instagram.label} /></p>
+  <Footnote text={footnote} />
+</div>
+
+<style>
+  .instagram {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+</style>

@@ -1,0 +1,356 @@
+---
+// Accents (level 2) for one scene's accent slot: the glint on the watch (hero, partners), the
+// smoke at the two seams (into services, into the final) and the cigar engraving with its smoke
+// (final). The glint box sits over the watch through the same cover geometry the images use;
+// the marks come from the images catalog. Everything here is decorative and aria-hidden.
+// Without scripts: the cigar is drawn and still, the glint and the smoke never show.
+import { images, catalog, crops, geometry } from '../images';
+import type { SceneName } from '../story';
+
+interface Props {
+  scene: Extract<SceneName, 'hero' | 'services' | 'partners' | 'final'>;
+}
+const { scene } = Astro.props;
+
+const n = (v: number) => Number(v.toFixed(5)).toString();
+const smokeA = images.texture('smoke-a');
+const smokeB = images.texture('smoke-b');
+
+// Glint boxes: centre (--x, --y) and side (--s) in the scene's box (container units).
+type Pt = { x: number; y: number };
+type Size = { width: number; height: number };
+const coverH = (img: Size) => `max(100cqh, ${n((100 * img.height) / img.width)}cqw)`;
+/** object-fit: cover with anchor `a`. */
+function coverBox(img: Size, p: Pt, a: Pt, side: number) {
+  return {
+    '--x': geometry.coverXCss(img, p.x, a.x),
+    '--y': `calc(${n(a.y * 100)}cqh + ${n(p.y / img.height - a.y)} * ${coverH(img)})`,
+    '--s': `calc(${n(side / img.width)} * ${geometry.coverWidthCss(img)})`,
+  };
+}
+/** Full height, pinned right (wide-scheme portraits). */
+function rightBox(img: Size, p: Pt, side: number) {
+  return {
+    '--x': geometry.rightXCss(img, p.x),
+    '--y': `${n((100 * p.y) / img.height)}cqh`,
+    '--s': `${n((100 * side) / img.height)}cqh`,
+  };
+}
+/** Cover centred on a source x, vertical anchor `ay` (vertical-scheme portraits). */
+function focusBox(img: Size, p: Pt, focusX: number, ay: number, side: number) {
+  const w = geometry.coverWidthCss(img);
+  return {
+    '--x': `calc(${geometry.focusPositionCss(img, focusX)} + ${n(p.x / img.width)} * ${w})`,
+    '--y': `calc(${n(ay)} * (100cqh - ${coverH(img)}) + ${n(p.y / img.height)} * ${coverH(img)})`,
+    '--s': `calc(${n(side / img.width)} * ${w})`,
+  };
+}
+/** Full width, pinned to the top (the hero's phone window). */
+function topBox(img: Size, p: Pt, side: number) {
+  return {
+    '--x': `${n((100 * p.x) / img.width)}cqw`,
+    '--y': `${n((100 * p.y) / img.width)}cqw`,
+    '--s': `${n((100 * side) / img.width)}cqw`,
+  };
+}
+const css = (vars: Record<string, string>) =>
+  Object.entries(vars)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('; ');
+
+const near = catalog['balcony-near'];
+const phoneNear = catalog['balcony-phone-near'];
+const stairs = catalog.stairs;
+// Side of the glint box in source pixels: the watch face and a little of the bracelet.
+const heroSide = 120;
+const stairsSide = 100;
+const heroWide = coverBox(near, near.marks.watch, crops.heroWide.anchor, heroSide);
+const heroNarrow = coverBox(near, near.marks.watch, crops.heroWide.narrowAnchor, heroSide);
+// The hero's crop anchor changes on screens narrower than 1.55:1: both boxes ride along, CSS picks.
+const heroWideVars = Object.fromEntries([
+  ...Object.entries(heroWide).map(([k, v]) => [`${k}-wide`, v]),
+  ...Object.entries(heroNarrow).map(([k, v]) => [`${k}-narrow`, v]),
+]);
+const heroTall = topBox(phoneNear, phoneNear.marks.watch, heroSide);
+const partnersWide = rightBox(stairs, stairs.marks.watch, stairsSide);
+const partnersTall = focusBox(stairs, stairs.marks.watch, crops.partnersVertical.focusX, crops.partnersVertical.anchorY, stairsSide);
+
+// The cigar: a 240×64 engraving in thin gold lines, head on the left, lit end on the right.
+// Its tip (top of the ash) is where the smoke starts.
+const VB = { w: 240, h: 64 };
+const tip = { x: 224, y: 21 };
+const range = (from: number, to: number, step: number) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
+const hatch = range(64, 190, 5).map((x) => `M${x} 43.4l4-7`).join('');
+const fine = range(66.5, 190, 5).map((x) => `M${x} 43.6l1.6-2.8`).join('');
+const capHatch = range(5, 13, 2.6).map((x) => `M${x} ${30 - (13 - x) * 0.6}v${4 + (13 - x) * 1.2}`).join('');
+const ash = 'M201 24l1.2 3.4M205 30l-1 4M209 22.6l1 3M212 33l1.4 3.6M215 26l.6 4M219 23.4l-.4 3.2M218 36l1-2.8M207 39l1.2 2';
+---
+
+
+{
+  scene === 'hero' && (
+    <>
+      <div class="glint-frame glint-frame--wide" data-glint data-glint-layer="near" aria-hidden="true">
+        <div class="glint glint--hero-wide" style={css(heroWideVars)} data-glint-box>
+          <span class="glint__band" data-glint-band />
+        </div>
+      </div>
+      <div class="glint-frame glint-frame--vertical" data-glint data-glint-layer="phone-near" aria-hidden="true">
+        <div class="glint" style={css(heroTall)} data-glint-box>
+          <span class="glint__band" data-glint-band />
+        </div>
+      </div>
+    </>
+  )
+}
+
+{
+  scene === 'partners' && (
+    <>
+      <div class="glint-frame glint-frame--wide" data-glint data-glint-layer="photo" aria-hidden="true">
+        <div class="glint" style={css(partnersWide)} data-glint-box>
+          <span class="glint__band" data-glint-band />
+        </div>
+      </div>
+      <div class="glint-frame glint-frame--vertical" data-glint data-glint-layer="photo" aria-hidden="true">
+        <div class="glint" style={css(partnersTall)} data-glint-box>
+          <span class="glint__band" data-glint-band />
+        </div>
+      </div>
+    </>
+  )
+}
+
+{
+  scene === 'services' && (
+    <div class="smoke smoke--seam" aria-hidden="true">
+      <img class="puff puff--a" src={smokeA.src} width={smokeA.width} height={smokeA.height} alt="" loading="lazy" decoding="async" data-smoke data-cycle="11000" data-offset="0" data-rise="50" />
+      <img class="puff puff--b" src={smokeB.src} width={smokeB.width} height={smokeB.height} alt="" loading="lazy" decoding="async" data-smoke data-cycle="13000" data-offset="6000" data-rise="60" />
+    </div>
+  )
+}
+
+{
+  scene === 'final' && (
+    <div class="final-accent" aria-hidden="true">
+      <div class="smoke smoke--final-seam">
+        <img class="puff puff--a" src={smokeB.src} width={smokeB.width} height={smokeB.height} alt="" loading="lazy" decoding="async" data-smoke data-cycle="12000" data-offset="3000" data-rise="80" />
+        <img class="puff puff--b" src={smokeA.src} width={smokeA.width} height={smokeA.height} alt="" loading="lazy" decoding="async" data-smoke data-cycle="14000" data-offset="9000" data-rise="90" />
+      </div>
+      <div class="cigar" data-cigar style={`--tip-x: ${n((100 * tip.x) / VB.w)}%; --tip-y: ${n((100 * tip.y) / VB.h)}%`}>
+        <div class="cigar__window" data-cigar-window>
+          <div class="cigar__art" data-cigar-art>
+            <svg viewBox={`0 0 ${VB.w} ${VB.h}`} focusable="false">
+              <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 20C6 20 2 26 2 32s4 12 14 12" />
+                <path d="M16 20h180M16 44h180" />
+                <path d="M196 20c3.4 7 3.4 17 0 24" />
+                <path d="M196 20l6 .6 6-.5 6 .8 6 .4 2 .3M196 44l7-.5 6 .6 6-.9 6-.4M222 21.6c5 3.4 5 18.2-.4 21.6" />
+                <path d={ash} />
+                <path d="M36 20v24M58 20v24M38 23.6h18M38 40.4h18M47 27l4 5-4 5-4-5z" />
+                <path d="M62 22.8h132M62 27c34-2 66 2 98-1s28 1 34 0M70 36c34-2 64 1.4 96-.4s22 .8 28 .4" />
+                <path d={hatch} />
+                <path d={fine} />
+                <path d={capHatch} />
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="cigar__smoke">
+          <img class="puff" src={smokeA.src} width={smokeA.width} height={smokeA.height} alt="" loading="lazy" decoding="async" data-smoke data-smoke-after="cigar" data-cycle="10000" data-offset="0" data-rise="60" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+<style>
+  /* Glint: a frame the size of the scene's picture, a soft round box over the watch (the motion
+     script makes it follow the watch's layer), and a diagonal band of light that crosses it. */
+  .glint-frame {
+    position: absolute;
+    inset: 0;
+    display: none;
+    container-type: size;
+    pointer-events: none;
+  }
+  @media (orientation: landscape) {
+    /* The wide picture is one screen tall at the scene's top (story scene.css). */
+    .glint-frame--wide {
+      display: block;
+      bottom: auto;
+      height: 100svh;
+    }
+  }
+  @media (orientation: portrait) {
+    .glint-frame--vertical {
+      display: block;
+    }
+  }
+  .glint {
+    position: absolute;
+    left: calc(var(--x) - var(--s) / 2);
+    top: calc(var(--y) - var(--s) / 2);
+    width: var(--s);
+    height: var(--s);
+    overflow: hidden;
+    -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent);
+    mask-image: radial-gradient(closest-side, #000 55%, transparent);
+  }
+  .glint--hero-wide {
+    --x: var(--x-wide);
+    --y: var(--y-wide);
+    --s: var(--s-wide);
+  }
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
+    .glint--hero-wide {
+      --x: var(--x-narrow);
+      --y: var(--y-narrow);
+      --s: var(--s-narrow);
+    }
+  }
+  .glint__band {
+    position: absolute;
+    top: -50%;
+    left: 0;
+    width: 28%;
+    height: 200%;
+    background: linear-gradient(90deg, transparent, rgb(var(--gold-bright-rgb) / 0.4) 50%, transparent);
+    opacity: 0;
+  }
+
+  /* Smoke: textures in the smoke colour, hidden until the motion script lets them drift.
+     Never over text: desktop in the right half, phone above the next scene's text. */
+  .smoke {
+    position: absolute;
+    pointer-events: none;
+  }
+  .puff {
+    position: absolute;
+    bottom: 0;
+    height: 100%;
+    width: auto;
+    max-width: 48%;
+    aspect-ratio: 1 / 2;
+    object-fit: contain;
+    object-position: 50% 100%;
+    opacity: 0;
+  }
+  .puff--a {
+    left: 0;
+  }
+  .puff--b {
+    left: 50%;
+  }
+  /* Past the widest text column, whatever the screen. */
+  .smoke--seam {
+    left: max(52%, calc(var(--gutter) + var(--text-column) + var(--space-xl)));
+    right: 4%;
+    top: -18%;
+    height: 54%;
+  }
+  /* Phones lying down: the next scene's text starts at its top, so the smoke stays above the seam. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .smoke--seam {
+      top: -45%;
+      height: 45%;
+    }
+  }
+  @media (orientation: portrait) {
+    .smoke--seam {
+      left: 6%;
+      right: 6%;
+      top: 0;
+      height: 34%;
+    }
+  }
+
+  /* Final: the seam smoke lives in the column (the final has no image overlay) and reaches up
+     over the seam into the right half; the cigar sits above the title. */
+  .final-accent {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--space-lg);
+  }
+  .smoke--final-seam {
+    left: max(50vw, calc(100% + var(--space-xl)));
+    right: calc(100% - 96vw);
+    top: -18%;
+    height: 54%;
+  }
+  @media (orientation: portrait), (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .smoke--final-seam {
+      display: none;
+    }
+  }
+  .cigar {
+    position: relative;
+    width: 240px;
+    color: var(--gold);
+  }
+  .cigar__window {
+    overflow: hidden;
+  }
+  .cigar__art svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .cigar__art path {
+    vector-effect: non-scaling-stroke;
+  }
+  /* The plume's narrow, faint base sits on the tip; it only ever rises from there. */
+  .cigar__smoke {
+    position: absolute;
+    left: calc(var(--tip-x) - 60px);
+    bottom: calc(100% - var(--tip-y) - 36px);
+    width: 120px;
+    height: 240px;
+    pointer-events: none;
+  }
+  .cigar__smoke .puff {
+    left: 0;
+    max-width: none;
+  }
+  /* Grain jitter: 12 steps a second on the compositor, so the page's frame loop can rest. The
+     motion script switches it on (data-jitter); the "reduce motion" setting stops it at once.
+     Every step stays inside the grain layer's 32px overscan (Frame.astro). */
+  @media (prefers-reduced-motion: no-preference) {
+    :global([data-grain][data-jitter]) {
+      will-change: transform;
+      animation: grain-jitter 1s steps(1, end) infinite;
+    }
+  }
+  @keyframes grain-jitter {
+    0% { transform: translate3d(-14px, 9px, 0); }
+    8.333% { transform: translate3d(21px, -17px, 0); }
+    16.667% { transform: translate3d(-6px, -23px, 0); }
+    25% { transform: translate3d(17px, 12px, 0); }
+    33.333% { transform: translate3d(-22px, -4px, 0); }
+    41.667% { transform: translate3d(5px, 19px, 0); }
+    50% { transform: translate3d(12px, -10px, 0); }
+    58.333% { transform: translate3d(-19px, 22px, 0); }
+    66.667% { transform: translate3d(24px, 3px, 0); }
+    75% { transform: translate3d(-9px, -15px, 0); }
+    83.333% { transform: translate3d(2px, 7px, 0); }
+    91.667% { transform: translate3d(-24px, 16px, 0); }
+  }
+
+  /* Phones lying down: no room above the cigar, the smoke would reach the scene above. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .cigar__smoke {
+      display: none;
+    }
+  }
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .cigar {
+      width: 160px;
+    }
+    .cigar__smoke {
+      left: calc(var(--tip-x) - 40px);
+      bottom: calc(100% - var(--tip-y) - 24px);
+      width: 80px;
+      height: 160px;
+    }
+  }
+</style>

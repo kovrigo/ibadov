@@ -1,0 +1,14 @@
+---
+// Chapter title (title-card): a heading in the serif. `display` is for the few headings
+// DESIGN.md sets in display; it drops to title on narrow wide screens and phones.
+interface Props {
+  text: string;
+  level?: 2 | 3;
+  size?: 'title' | 'display';
+  hidden?: boolean;
+}
+const { text, level = 2, size = 'title', hidden = false } = Astro.props;
+const Tag = `h${level}` as 'h2' | 'h3';
+---
+
+<Tag class:list={[hidden ? 'visually-hidden' : `t-${size}`]}>{text}</Tag>

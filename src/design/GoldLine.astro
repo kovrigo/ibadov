@@ -1,0 +1,30 @@
+---
+// Gold line: a thin divider. `short` is the 64px gold-line under a name; `rule` is the
+// 1px gold-deep line as wide as the text column; `reach` fills the space it is given (gold).
+interface Props {
+  variant?: 'short' | 'rule' | 'reach';
+  [attr: `data-${string}`]: string | boolean | undefined;
+}
+const { variant = 'short', ...rest } = Astro.props;
+---
+
+<span class:list={['gold-line', `gold-line--${variant}`]} aria-hidden="true" {...rest}></span>
+
+<style>
+  .gold-line {
+    display: block;
+    height: 1px;
+    background: var(--gold);
+  }
+  .gold-line--short {
+    width: var(--gold-line-width);
+  }
+  .gold-line--rule {
+    width: 100%;
+    background: var(--gold-deep);
+  }
+  .gold-line--reach {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+</style>

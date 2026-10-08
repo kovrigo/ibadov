@@ -1,0 +1,19 @@
+---
+// The Frame's floating place: a layer fixed to the bottom of the screen, above every scene,
+// the grain and the opening overlay. Widgets go in its slot. It must not sit inside an
+// element that is transformed, faded or contained, or "fixed" stops meaning the screen.
+---
+
+<div class="floating-place" data-floating>
+  <slot />
+</div>
+
+<style>
+  .floating-place {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+  }
+</style>

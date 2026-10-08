@@ -1,0 +1,162 @@
+/* Scenes: shared layout. Wide scheme = landscape screen, vertical scheme = portrait screen.
+   Text always stands on a scrim (ink 0.85); under every image is ink. */
+
+.scene {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  background: var(--ink);
+  isolation: isolate;
+  container-type: inline-size;
+  /* The scrim runs up to 120px past a full-width text column: on a very narrow landscape screen
+     (568×320, or a zoomed-in desktop) it must not make the page scroll sideways. */
+  overflow-x: clip;
+}
+
+/* Stacking inside a scene: image box, then the accent place, then the text column on its scrim. */
+.scene__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--ink);
+  container-type: size;
+}
+
+.scene__accent {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.scene__column {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+.scene__column::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.scene__text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Image groups. Images fill their box and are cropped, never stretched. */
+[data-stack] {
+  position: absolute;
+  inset: 0;
+  transition: opacity var(--dur-small) var(--ease-enter);
+}
+/* Each layer's <picture> is a box filling its group, so motion can move a layer through two
+   elements (the picture and the img) without two scripts writing the same one. */
+[data-stack] > picture {
+  position: absolute;
+  inset: 0;
+}
+[data-stack] img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* A broken image draws its description as text; keep that for screen readers only. */
+  color: transparent;
+}
+/* Loading state: only the story script sets data-loading. */
+[data-stack][data-loading] {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-stack] {
+    transition-duration: var(--dur-calm-fade);
+  }
+}
+
+/* Wide scheme: text column on the left, as wide as its content, on a scrim from the screen's
+   left edge to the column's edge. Past it the scrim fades out over the room left before the face
+   or the dome (to 8px short of them), 32px to 120px: a short fade reads as a panel's edge.
+   --limit keeps the text clear of a face or the dome. */
+@media (orientation: landscape) {
+  .scene__column {
+    justify-content: center;
+    box-sizing: content-box;
+    width: max-content;
+    max-width: min(var(--text-column), var(--limit, var(--text-column)));
+    /* A word or the button never sticks out of the scrim: the column grows to fit it. */
+    min-width: min-content;
+    padding: var(--space-3xl) 0 max(var(--space-2xl), var(--floating-reserve)) var(--gutter);
+  }
+  .scene__column::before {
+    inset: 0;
+    background: var(--scrim);
+  }
+  .scene__column::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset-block: 0;
+    left: 100%;
+    width: clamp(var(--scrim-fade), var(--gutter) + var(--limit, 100vw) + var(--scrim-fade) - 100%, var(--image-fade));
+    background: linear-gradient(to right, var(--scrim), transparent);
+    pointer-events: none;
+  }
+}
+/* --limit is worked out for a picture one screen tall (cqh is the small viewport height in the
+   column). A scene taller than the screen (a short window, browser zoom) keeps its picture one
+   screen tall at the top, fading into ink: a taller picture would bring the face into the text. */
+@media (orientation: landscape) {
+  .scene--framed .scene__media {
+    bottom: auto;
+    height: 100svh;
+  }
+  .scene--framed::after {
+    --overflow-fade: min(var(--image-fade), 100% - 100svh);
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset-inline: 0;
+    top: calc(100svh - var(--overflow-fade));
+    height: var(--overflow-fade);
+    background: linear-gradient(to bottom, transparent, var(--ink));
+    pointer-events: none;
+  }
+}
+@media (orientation: landscape) and (max-aspect-ratio: 155/100) {
+  .scene__column {
+    max-width: min(var(--text-column), var(--limit-narrow, var(--limit, var(--text-column))));
+  }
+  .scene__column::after {
+    width: clamp(var(--scrim-fade), var(--gutter) + var(--limit-narrow, var(--limit, 100vw)) + var(--scrim-fade) - 100%, var(--image-fade));
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .scene__column {
+    padding-top: var(--space-md);
+  }
+}
+
+/* Vertical scheme: text in the bottom third on a scrim rising from the bottom edge,
+   above the phone bar on phones. */
+@media (orientation: portrait) {
+  .scene {
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .scene__column {
+    padding: var(--space-lg) var(--gutter) max(var(--space-xl), var(--floating-reserve));
+  }
+  .scene__column::before {
+    inset: calc(-1 * var(--space-3xl)) 0 0 0;
+    background: linear-gradient(to top, var(--scrim) calc(100% - var(--space-3xl)), transparent);
+  }
+  .scene__text {
+    max-width: var(--text-column);
+  }
+}

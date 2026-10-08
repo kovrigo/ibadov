@@ -1,0 +1,63 @@
+---
+// Freeze-frame caption: the credit and the hero's caption in display.
+// Wide scheme: a gold line runs from the caption towards Сергей and stops `reach` short of him.
+// Vertical scheme: a short gold-line under the name instead.
+import Credit from './Credit.astro';
+import GoldLine from './GoldLine.astro';
+interface Props {
+  credit: string;
+  caption: string;
+}
+const { credit, caption } = Astro.props;
+---
+
+<div class="freeze-caption">
+  <Credit text={credit} line="vertical" />
+  <div class="row">
+    <h2 class="t-display caption">{caption}</h2>
+    <span class="reach"><GoldLine variant="reach" data-line="reach" /></span>
+  </div>
+</div>
+
+<style>
+  .freeze-caption {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    /* The row may be wider than the column: the scene sets --reach-width. */
+    width: var(--reach-width, auto);
+  }
+  .caption {
+    flex: 0 1 auto;
+  }
+  .reach {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    container-type: inline-size;
+  }
+  /* Shorter than a gold-line (64px) the line reads as a dash after the caption: none at all. */
+  @container (width < 64px) {
+    .reach :global(.gold-line) {
+      display: none;
+    }
+  }
+  @media (orientation: landscape) {
+    .caption {
+      max-width: var(--caption-width, none);
+    }
+  }
+  @media (orientation: portrait) {
+    .row {
+      width: auto;
+    }
+    .reach {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,36 @@
+---
+// The only page: the Story's Landing in the Frame, the link card in <head>. Levels 2 and 3 fill
+// the slots: the opening's head script and overlay, the camera's freeze light, the accents.
+// One motion script starts them; without it (or with reduced motion) the page is level 1.
+import Frame from '../platform/frame/Frame.astro';
+import Landing from '../blocks/story/Landing.astro';
+import { Card } from '../blocks/card';
+import { images } from '../blocks/images';
+import Gate from '../blocks/opening/Gate.astro';
+import Opening from '../blocks/opening/Opening.astro';
+import Flash from '../blocks/camera/Flash.astro';
+import Accents from '../blocks/accents/Accents.astro';
+
+const grain = images.texture('grain').src;
+---
+
+<Frame grain={grain}>
+  <Card slot="head" />
+  <Gate slot="head" />
+  <Landing>
+    <Fragment slot="accent-hero"><Accents scene="hero" /><Opening /></Fragment>
+    <Accents slot="accent-services" scene="services" />
+    <Flash slot="accent-freeze" />
+    <Accents slot="accent-partners" scene="partners" />
+    <Accents slot="accent-final" scene="final" />
+  </Landing>
+  <script>
+    import { startOpening } from '../blocks/opening';
+    import { startCamera } from '../blocks/camera';
+    import { startAccents } from '../blocks/accents';
+
+    const heroReady = startOpening();
+    startCamera();
+    startAccents({ heroReady });
+  </script>
+</Frame>

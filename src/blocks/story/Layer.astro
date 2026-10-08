@@ -1,0 +1,40 @@
+---
+// One image layer: AVIF + WebP sources, cropped by CSS (object-fit), never stretched.
+// `only` keeps a scheme's layer from downloading in the other scheme (a 1px blank answers there).
+// `portrait` art-directs a second picture for the vertical scheme.
+import type { Picture } from '../images';
+
+interface Props {
+  picture: Picture;
+  sizes: string;
+  layer: string;
+  only?: 'wide' | 'vertical';
+  portrait?: { picture: Picture; sizes: string };
+  /** Main image of its scene and scheme: carries the description. Others are decorative. */
+  main?: boolean;
+  eager?: boolean;
+  priority?: boolean;
+}
+const { picture, sizes, layer, only, portrait, main = false, eager = false, priority = false } = Astro.props;
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const gate = only === 'wide' ? '(orientation: portrait)' : only === 'vertical' ? '(orientation: landscape)' : undefined;
+---
+
+<picture>
+  {gate && <source media={gate} srcset={BLANK} />}
+  {portrait && <source media="(orientation: portrait)" type="image/avif" srcset={portrait.picture.avif} sizes={portrait.sizes} />}
+  {portrait && <source media="(orientation: portrait)" type="image/webp" srcset={portrait.picture.webp} sizes={portrait.sizes} />}
+  <source type="image/avif" srcset={picture.avif} sizes={sizes} />
+  <source type="image/webp" srcset={picture.webp} sizes={sizes} />
+  <img
+    src={picture.src}
+    width={picture.width}
+    height={picture.height}
+    alt={main ? picture.alt : ''}
+    aria-hidden={main ? undefined : 'true'}
+    loading={eager ? 'eager' : 'lazy'}
+    fetchpriority={priority ? 'high' : undefined}
+    decoding={eager ? undefined : 'async'}
+    data-layer={layer}
+  />
+</picture>

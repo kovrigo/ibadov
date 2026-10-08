@@ -1,0 +1,38 @@
+---
+// Widget: the phone bar. Lives in the Frame's floating place; shown only on phones
+// (narrower than 768px, or lying down lower than 500px). Visible during the intro too.
+import FloatingPlace from '../../platform/frame/FloatingPlace.astro';
+import TelegramButton from './TelegramButton.astro';
+---
+
+<FloatingPlace>
+  <div class="phone-bar" data-phone-bar>
+    <TelegramButton placement="bar" />
+  </div>
+</FloatingPlace>
+
+<style>
+  .phone-bar {
+    display: none;
+  }
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .phone-bar {
+      position: relative;
+      display: block;
+      height: calc(var(--phone-bar) + env(safe-area-inset-bottom, 0px));
+      padding: var(--phone-bar-padding);
+      padding-inline: var(--gutter);
+      padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+      background: var(--phone-bar-bg);
+    }
+    .phone-bar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--gold-deep);
+    }
+  }
+</style>

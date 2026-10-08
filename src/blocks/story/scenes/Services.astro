@@ -1,0 +1,35 @@
+---
+// Scene 3, «Купить / Продать»: plain words on the blurred river lights.
+import Scene from '../Scene.astro';
+import Layer from '../Layer.astro';
+import TitleCard from '../../../design/TitleCard.astro';
+import GoldLine from '../../../design/GoldLine.astro';
+import { texts } from '../../texts';
+import { images } from '../../images';
+
+const t = texts.chapter('services');
+const plate = await images.picture('plate-services');
+const [buy, sell] = t.items;
+---
+
+<Scene name="services">
+  <Fragment slot="media">
+    <div class="stack" data-stack="main"><Layer picture={plate} sizes="100vw" layer="plate" main /></div>
+  </Fragment>
+  <slot name="accent" slot="accent" />
+  <TitleCard text={t.title} />
+  <div class="words">
+    <p class="t-display">{buy}</p>
+    <GoldLine variant="rule" data-line="rule" />
+    <p class="t-display">{sell}</p>
+  </div>
+</Scene>
+
+<style>
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+  }
+</style>

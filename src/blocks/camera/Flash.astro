@@ -1,0 +1,16 @@
+---
+// The freeze frame's amber light: fills the story's "accent-freeze" slot, over the portrait and
+// under the text. Invisible until the camera raises it; without scripts it never shows.
+---
+
+<div class="flash" data-flash aria-hidden="true"></div>
+
+<style>
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: var(--amber);
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>

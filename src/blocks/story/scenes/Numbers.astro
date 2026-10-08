@@ -1,0 +1,38 @@
+---
+// Scene 5, numbers: the customer's facts on the blurred city lights. No counter.
+import Scene from '../Scene.astro';
+import Layer from '../Layer.astro';
+import TitleCard from '../../../design/TitleCard.astro';
+import Numeral from '../../../design/Numeral.astro';
+import { texts } from '../../texts';
+import { images } from '../../images';
+
+const t = texts.chapter('numbers');
+const plate = await images.picture('plate-numbers');
+const [sales, followers] = t.facts;
+---
+
+<Scene name="numbers">
+  <Fragment slot="media">
+    <div class="stack" data-stack="main"><Layer picture={plate} sizes="100vw" layer="plate" main /></div>
+  </Fragment>
+  <slot name="accent" slot="accent" />
+  <TitleCard text={t.title} hidden />
+  <div class="facts">
+    <Numeral label={sales.label} lead={sales.lead} number={sales.number} unit={sales.unit} />
+    <Numeral lead={followers.lead} number={followers.number} unit={followers.unit} />
+  </div>
+</Scene>
+
+<style>
+  .facts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+  }
+  @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
+    .facts {
+      gap: var(--space-xl);
+    }
+  }
+</style>

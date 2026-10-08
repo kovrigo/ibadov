@@ -1,0 +1,48 @@
+---
+// Button (button-primary): solid gold, dark label text, a 1px line arrow. A plain link.
+interface Props {
+  href: string;
+  label: string;
+  /** Full width (the phone bar). */
+  block?: boolean;
+}
+const { href, label, block = false } = Astro.props;
+---
+
+<a class:list={['button', 't-label', { 'button--block': block }]} href={href}>
+  <span>{label}</span>
+  <svg class="arrow" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 14 14">
+    <path d="M1.5 12.5 12.5 1.5M4.5 1.5h8v8" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+  </svg>
+</a>
+
+<style>
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    height: var(--button-height);
+    padding: var(--button-padding);
+    background: var(--gold);
+    color: var(--on-gold);
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: var(--radius);
+    transition: background-color var(--dur-hover) linear;
+  }
+  .button:hover {
+    background: var(--gold-bright);
+  }
+  .button:active {
+    background: var(--gold);
+    transform: translateY(1px);
+  }
+  .button--block {
+    display: flex;
+    width: 100%;
+  }
+  .arrow {
+    flex: none;
+  }
+</style>

@@ -1,0 +1,32 @@
+{
+  "checks": "pass",
+  "problems": [],
+  "files": {
+    "aerial-vertical.webp": "971e45dc4d0f06ad861a7372a608648f14a9c632fb5ae6e2e195737903d3962d",
+    "aerial.webp": "1c9a360305e9c559ee808773388695267355673681cf0e6aab00906793d6f092",
+    "balcony-band.webp": "b3b5beb03d16949e8e50ba9e9f26c5e3fb96c470978114b703823bca3b81dc09",
+    "balcony-far.webp": "c3f58bbd735ffb20522f7166535a6bc49b9f5d4ef0c6d82088d9df35815f94d3",
+    "balcony-near.webp": "75b3f667d9fe6a5af45f3d1ef0e4a20d8af30ea0f5ed9ae5f8ea792e08892244",
+    "balcony-phone-back.webp": "9ab28c7a973f6cb52e84fcf78cc2b08db4886def195bbc2ea6ccdd68bdd86293",
+    "balcony-phone-near.webp": "53307060728bb0fd03477a581d25d1ac6edeb2304ba17b9e9b5fd07f11e5b442",
+    "card.webp": "44d165705f1c1013f7aad40c9d4388ec7f6cf4c27181272e94765454de70a8ce",
+    "close-muted.webp": "00b2752fc0c751ada68c55ca0046c9f9b319c272c08cfb34f6bcf594881e976b",
+    "close.webp": "932d41a26e7342653f898ea321a8c8ecc982fac1e78b2ecfce867efc318807ed",
+    "grain.webp": "cb0389075006e5fe11921292810057df2fdf3f1ec3ec0ebfffde2b4fb8e25f31",
+    "plate-numbers.webp": "f5943e907881593799ac39236a7225e841086ce31a3aa50ddb048705c99364f9",
+    "plate-services.webp": "17f7e0dc23e954cceedaa39381c7f4d4e2eb4572d5433e7e96f69979b0a6e6aa",
+    "smoke-a.webp": "62e817f7d9a03c64b0d8cf2fea26e1911e48c3f807424fdf901044b639672099",
+    "smoke-b.webp": "42b75e55db90a4e7bdeb205961e00f837e33da4955f7aaa55722fe83dc2368bb",
+    "stairs.webp": "083c86392bd0524121aed0552c01cb52d1ea48e02d09d04345d4ee04bc9e0c4f",
+    "source/aerial.png": "e6e8ddcee963b3433d589032781fd6f3301529323fe1890a5ec5a2899276326a",
+    "source/balcony.png": "883a97abf020b9f2d5d39e849892a77a41f0810d371f16ec77405ddf4cb6893e",
+    "source/close.jpg": "0304bfb42f6d94e478cc3739bf82a2c059a0f912ec4037c212e480bdc11a285f",
+    "source/stairs.jpg": "92bf98d8206877ec00a6a4781dd9b2b31659d9ad9b6eadc7c0165c72004d521d",
+    "prep/aerial-fill-left.png": "2a7e3cc3c4f9a0d993ca105c36257af7725822a3b985525e26288034a7142587",
+    "prep/aerial-fill-right.png": "ddae9d90bd931f9395be7b745833e3711f6b41de32e5ecc2ea9971a3dd4846de",
+    "prep/aerial-matte.png": "184a2baadbb200c2a3e41053d08f8305031518e46b734aa89e294d3baf33027f",
+    "prep/balcony-fill-left.png": "89769fcd9f9766bd6a22ea057531a94b7bc9921ff1400c36cf57a4349371842a",
+    "prep/balcony-fill-right.png": "5b804fae55c1e79a4ae15fcdaa0ff0345eb2d8fb6400c0f5e3702bc5722b5463",
+    "prep/balcony-matte.png": "ec91af14ed4f0af5191c745744bf086f2c4b8afffcdf4457fbcdd8fd7ab2f70e"
+  }
+}
