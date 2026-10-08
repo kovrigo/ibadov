@@ -33,24 +33,23 @@
 ## Изменить вступление
 
 1. Шаги и время вступления лежат в `src/blocks/opening/timeline.ts`. Общие длительности движения — `motion.duration` в `src/design/tokens.ts`.
-2. Вступление должно закончиться до 5 с. Это проверяет `src/blocks/opening/tests/timeline.test.ts`.
+2. Растворение в первый экран начинается до конца файла и кончается после него. Это проверяет `src/blocks/opening/tests/timeline.test.ts`.
 3. Движение может менять только положение, масштаб, прозрачность и видимость. Другое не пропустит `tests/motion-properties.test.ts`.
 4. Проверьте: `bun test ./src/blocks/opening`, затем браузерные проверки.
 
 ## Заменить видео вступления
 
-Исходник заказчика — `src/blocks/opening/assets/source/intro.mp4`. Страница берёт два файла рядом: `intro-wide.mp4` и `intro-vertical.mp4`. Они собраны так (ffmpeg со статической сборкой, без звука, первые 3,8 с — до вшитого титра):
+Исходник заказчика — `src/blocks/opening/assets/source/intro.mp4`. Страница берёт `intro-cut.mp4` рядом. Он собран так (ffmpeg со статической сборкой, без звука, первые 7,0 с — до собственного растворения фильма в вшитый первый экран):
 
 ```
-ffmpeg -i src/blocks/opening/assets/source/intro.mp4 -t 3.8 -an -vf format=yuv420p -c:v libx264 -preset veryslow -crf 24 -profile:v high -g 48 -movflags +faststart src/blocks/opening/assets/intro-wide.mp4
-ffmpeg -i src/blocks/opening/assets/source/intro.mp4 -t 3.8 -an -vf "crop=406:720:437:0,format=yuv420p" -c:v libx264 -preset veryslow -crf 24 -profile:v high -g 48 -movflags +faststart src/blocks/opening/assets/intro-vertical.mp4
+ffmpeg -i src/blocks/opening/assets/source/intro.mp4 -t 7.0 -an -vf format=yuv420p -c:v libx264 -preset veryslow -crf 24 -profile:v high -g 48 -movflags +faststart src/blocks/opening/assets/intro-cut.mp4
 ```
 
-Новое видео длиннее или короче — поправьте шаги в `timeline.ts`: растворение в первый экран начинается до конца файла.
+Новое видео длиннее или короче — поправьте `clip` и шаги в `timeline.ts`. Вшитый титр в другом месте кадра — поправьте ширину кадра в вертикальной схеме в `Opening.astro`: титр должен помещаться в ширину экрана.
 
 ## Посмотреть вступление ещё раз
 
-Браузер запоминает первый визит. Выполните в консоли браузера `localStorage.removeItem('ibadow:intro-seen')` и обновите страницу. Окно в режиме инкогнито тоже покажет вступление.
+Обновите страницу. Браузер ничего не запоминает: фильм играет при каждом открытии. Его нет, если в адресе есть `#`, если страница открыта кнопкой «Назад» и при настройке «меньше движения».
 
 ## Собрать для настоящего адреса
 

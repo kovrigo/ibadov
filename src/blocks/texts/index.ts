@@ -15,6 +15,8 @@ const facts = {
 } as const;
 
 const services = ['Купить', 'Продать'] as const;
+// What he does, in plain words, under the first screen's headline.
+const trade = 'Покупка и продажа недвижимости.';
 
 // The menu of the first screen (customer's frame, 8 October 2026): each item names a scene.
 const menu = [
@@ -24,8 +26,8 @@ const menu = [
 ] as const;
 
 const chapters = {
-  hero: { credit: name, headline: tagline, lead: `${city}.`, menu, menuName: 'Разделы', cue: 'Пролистайте' },
-  services: { title: 'У каждого решения свой адрес.', items: services },
+  hero: { credit: name, headline: tagline, lead: `${city}. ${trade}`, menu, menuName: 'Разделы', cue: 'Пролистайте', skip: 'Пропустить' },
+  services: { title: 'Вариантов два.', items: services },
   freeze: { credit: name, caption: facts.rank },
   numbers: { title: 'Цифры', facts: [facts.sales, facts.followers] as const },
   partners: { title: facts.partners.title, names: facts.partners.names },

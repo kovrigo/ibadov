@@ -269,7 +269,7 @@ test.describe('phone lying down 740x360', () => {
       const p = document.querySelector<HTMLElement>('[data-scene="hero"] [data-text] > p');
       return p ? parseFloat(getComputedStyle(p).fontSize) : 0;
     });
-    const title = (await page.evaluate(inPageProbeText, { scene: 'services', text: 'У каждого решения свой адрес.', scroll: false })).fontSize;
+    const title = (await page.evaluate(inPageProbeText, { scene: 'services', text: 'Вариантов два.', scroll: false })).fontSize;
     expect.soft(headline, `${screen}: hero headline font-size, px (title = ${title})`).toBe(title);
   });
 });

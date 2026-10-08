@@ -8,13 +8,15 @@ const expectValue = (v: unknown) => expect(v);
 const brief = {
   heroCredit: 'Сергей Ибадов',
   heroHeadline: 'Петербург знает своих.',
-  heroLead: 'Риелтор в Санкт-Петербурге.',
+  heroLead: 'Риелтор в Санкт-Петербурге. Покупка и продажа недвижимости.',
   // Added 8 October 2026 with the customer's frame: the menu and the scroll hint.
   menu: ['Услуги', 'Партнёры', 'Контакты'],
   menuName: 'Разделы',
   cue: 'Пролистайте',
+  // Added 8 October 2026 with the customer's video: the intro's skip control.
+  skip: 'Пропустить',
   button: 'Написать в Telegram',
-  servicesTitle: 'У каждого решения свой адрес.',
+  servicesTitle: 'Вариантов два.',
   services: ['Купить', 'Продать'],
   freezeCaption: '№1 риелтор Петербурга',
   numbersHidden: 'Цифры',
@@ -72,7 +74,7 @@ const everything = [
 describe('texts are verbatim from the Brief', () => {
   test('hero', () => {
     const { menu, ...hero } = texts.chapter('hero');
-    expectValue(hero).toEqual({ credit: brief.heroCredit, headline: brief.heroHeadline, lead: brief.heroLead, menuName: brief.menuName, cue: brief.cue });
+    expectValue(hero).toEqual({ credit: brief.heroCredit, headline: brief.heroHeadline, lead: brief.heroLead, menuName: brief.menuName, cue: brief.cue, skip: brief.skip });
     expectValue(menu.map((m) => m.label)).toEqual(brief.menu);
     expectValue(menu.map((m) => m.scene)).toEqual(['services', 'partners', 'final']);
   });

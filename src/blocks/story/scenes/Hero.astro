@@ -18,6 +18,8 @@ const [previewWide, previewVertical] = await Promise.all([images.preview('balcon
 // "Петербург знает своих." → «Петербург» / «знает» + «своих.» in gold.
 const [first, ...rest] = t.headline.split(' ');
 const accent = rest.pop();
+// The lead's sentences, one per line: who he is, then what he does.
+const lead = t.lead.split(/(?<=\.) /);
 
 const frame = catalog['balcony-far'];
 const c = crops.heroWide;
@@ -55,7 +57,9 @@ const vars = {
   <p class="t-display headline" data-part="headline">
     <span class="line">{first}</span>{' '}<span class="line">{rest.join(' ')} <span class="accent">{accent}</span></span>
   </p>
-  <p class="t-lead lead" data-part="lead">{t.lead}</p>
+  <p class="t-lead lead" data-part="lead">
+    {lead.map((line, i) => (i ? <Fragment>{' '}<span class="line">{line}</span></Fragment> : <span class="line">{line}</span>))}
+  </p>
   <div class="action" data-part="action"><TelegramButton /></div>
   <Fragment slot="chrome">
     <nav class="nav" data-part="nav" aria-label={t.menuName}>
@@ -238,5 +242,12 @@ const vars = {
   }
   .lead {
     max-width: 34rem;
+  }
+  /* Screens narrower than 1.55:1 leave the column less room before the face: a tighter lead keeps
+     «Риелтор в Санкт-Петербурге.» on one line. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
+    .lead {
+      letter-spacing: 0.08em;
+    }
   }
 </style>

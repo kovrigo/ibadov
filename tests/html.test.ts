@@ -97,8 +97,10 @@ describe('built page', () => {
     };
     for (const c of ['hero', 'services', 'freeze', 'numbers', 'partners', 'final'] as const) add(texts.chapter(c));
     add(texts.contacts());
-    // The hero sets its headline in two lines with the last word in gold: one element per word.
+    // The hero sets its headline in two lines with the last word in gold: one element per word;
+    // and its lead one sentence per line.
     for (const w of texts.chapter('hero').headline.split(' ')) allowed.add(w);
+    for (const line of texts.chapter('hero').lead.split(/(?<=\.) /)) allowed.add(line);
     const visible = body
       .replace(/<script[\s\S]*?<\/script>/g, '')
       .replace(/<style[\s\S]*?<\/style>/g, '')

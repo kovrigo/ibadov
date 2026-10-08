@@ -160,3 +160,51 @@
     max-width: var(--text-column);
   }
 }
+
+/* The seam from the first screen into «Купить / Продать» (DESIGN.md Motion «Стык первого экрана»).
+   The first screen's picture melts to nothing at its bottom edge, so no line ever shows between
+   the two pictures. With the camera (data-seam on both scenes, set only by it): the desk lies
+   under the first screen. The services picture box reaches one screen up, under the hero, and
+   its picture is held at the top of the screen (sticky) while the first screen scrolls away over
+   it; the camera brings the desk out of ink and dissolves the balcony away as the first screen
+   leaves. Without it (no scripts, reduced motion): nothing overlaps or holds still; the balcony
+   melts into ink and the desk comes out of ink. */
+.scene--hero,
+.scene--services {
+  --seam-feather: 30svh;
+}
+.scene--hero .scene__media {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--seam-feather)), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--seam-feather)), transparent);
+}
+.scene--services:not([data-seam]) .scene__media {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--seam-feather));
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--seam-feather));
+}
+.scene--hero[data-seam] {
+  z-index: 1;
+  background: transparent;
+}
+.scene--services[data-seam] .scene__media {
+  top: -100svh;
+  bottom: 0;
+  height: auto;
+  overflow: clip;
+}
+.scene--services[data-seam] [data-stack] {
+  position: sticky;
+  inset: auto;
+  top: 0;
+  height: 100svh;
+}
+/* The held picture is always one screen tall: a taller scene needs no fade below it. */
+.scene--services[data-seam]::after {
+  content: none;
+}
+/* Vertical scheme: the first screen's scrim also fades out below its text, where the desk will
+   show through. */
+@media (orientation: portrait) {
+  .scene--hero .scene__column::before {
+    background: linear-gradient(to top, transparent, var(--scrim) var(--space-3xl), var(--scrim) calc(100% - var(--space-3xl)), transparent);
+  }
+}

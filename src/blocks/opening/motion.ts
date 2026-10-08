@@ -1,18 +1,18 @@
-// Opening (level 3): the intro over the first screen (Brief «Вступление», plan decision 6).
+// Opening (level 3): the intro over the first screen (DESIGN.md Motion «Вступление»).
 // The head script already chose: "intro-wait" means the intro may play, and Opening.astro started
-// the video. Here: wait up to 1.5 s from navigation start for the hero images and the video;
-// ready and still at the top → play 0–4.4 s; otherwise the first screen at once with the headline
-// fading in, and the video download stops. A tap outside the button, the wheel, a scroll or any
-// key → the ready first screen in 240ms, and the intro counts as seen even if it had not started.
-// The Telegram button is a plain link and is never intercepted; leaving through it marks the
-// intro seen. Reduced motion (or switched on mid-intro): the ready first screen. Returns a promise
-// that resolves when the first screen is ready.
+// the video. Here: wait up to 1.5 s from navigation start for the video to play; playing and still
+// at the top → the film 0–7.0 s, dissolving into the first screen by 7.8 s; otherwise the first
+// screen at once with the headline fading in, and the video download stops. A tap anywhere (on
+// «Пропустить» too), the wheel, a scroll or any key → the ready first screen in 240ms. The film
+// plays clear: the first screen's button waits with its text (a phone keeps its Telegram bar,
+// a plain link never intercepted). Nothing is remembered: the next opening plays it again.
+// Reduced motion (or switched on mid-intro): the ready first screen. Returns a promise that
+// resolves when the first screen is ready.
 import { story } from '../story';
 import { onMotionSettingChange, prefersReducedMotion } from '../../platform/motion-setting';
 import { clearStyle, ease, now, onFrame, setStyle, tween, type MotionProp } from '../../platform/motion-loop';
 import { motion } from '../../design/tokens';
-import { SEEN_KEY } from './gate';
-import { intro, introFrame, layerZoom, readyFrame, scaleAbout, type IntroFrame } from './timeline';
+import { intro, introFrame, layerZoom, pullScale, readyFrame, scaleAbout, type IntroFrame } from './timeline';
 
 type El = HTMLElement;
 
@@ -56,8 +56,9 @@ export function startOpening(): Promise<void> {
   const overlay = q('[data-opening]');
   const part = (name: string) => q(hero?.parts[name] ?? `[data-scene="hero"] [data-part="${name}"]`);
   const credit = part('credit');
-  // Headline, lead, nav and cue appear together; nav and cue may be absent on some screens.
-  const titles = ['headline', 'lead', 'nav', 'cue'].map(part);
+  // Headline, lead, button, nav and cue appear together; the button, nav and cue are not shown
+  // on every screen.
+  const titles = ['headline', 'lead', 'action', 'nav', 'cue'].map(part);
   const stack = hero ? Object.values(hero.stacks).map(q).find((el) => el && el.getClientRects().length > 0) : null;
   const layers = [...(stack?.querySelectorAll<HTMLImageElement>('img[data-layer]') ?? [])].map((img) => ({
     img,
@@ -79,6 +80,9 @@ export function startOpening(): Promise<void> {
   // Layers scale around the crop anchor of the visible stack.
   let anchor: [number, number] = [0.5, 0.1];
   let box = { w: 0, h: 0 };
+  // Portrait: the film box is its whole frame, centred; `cover` scales it up to fill the screen.
+  const portrait = matchMedia('(orientation: portrait)').matches;
+  let cover = 1;
   const measure = () => {
     const first = layers[0];
     if (!first) return;
@@ -87,15 +91,19 @@ export function startOpening(): Promise<void> {
       const [x, y] = getComputedStyle(first.img).objectPosition.split(/\s+/).map((v) => Number.parseFloat(v) / 100);
       anchor = [Number.isFinite(x) ? x! : 0.5, Number.isFinite(y) ? y! : 0.1];
     }
+    if (portrait && overlay && video && video.offsetWidth && video.offsetHeight) {
+      cover = Math.max(overlay.offsetWidth / video.offsetWidth, overlay.offsetHeight / video.offsetHeight, 1);
+    }
   };
 
   // The wait: ink over the image, the video not shown, the credit and titles not shown yet,
   // layers at rest.
-  let current: IntroFrame = { overlay: 1, video: 0, credit: 0, headline: 0, settle: 1 };
+  let current: IntroFrame = { overlay: 1, video: 0, pull: 0, credit: 0, headline: 0, settle: 1 };
   const draw = (f: IntroFrame) => {
     current = f;
     set(overlay, 'opacity', String(f.overlay));
     set(video, 'opacity', String(f.video));
+    if (portrait) set(video, 'transform', `scale(${Math.round(pullScale(cover, f.pull) * 1e5) / 1e5})`);
     set(credit, 'opacity', String(f.credit));
     for (const el of titles) set(el, 'opacity', String(f.headline));
     for (const l of layers) set(l.picture, 'transform', scaleAbout(layerZoom(l.speed, f.settle), anchor[0], anchor[1], box.w, box.h));
@@ -115,7 +123,7 @@ export function startOpening(): Promise<void> {
     cancel?.();
     for (const t of INPUTS) removeEventListener(t, onInput, true);
     release();
-    cls.remove('intro-on', 'intro-wait');
+    cls.remove('intro-on', 'intro-wait', 'intro-reveal', 'intro-skip');
     for (const el of touched) clearStyle(el);
     touched.clear();
     resolveReady();
@@ -127,6 +135,7 @@ export function startOpening(): Promise<void> {
     state = 'skip';
     cancel?.();
     video?.pause();
+    cls.add('intro-reveal', 'intro-skip');
     const from = current;
     const mix = (a: number, b: number, k: number) => a + (b - a) * k;
     cancel = tween({
@@ -136,6 +145,7 @@ export function startOpening(): Promise<void> {
         draw({
           overlay: mix(from.overlay, readyFrame.overlay, k),
           video: from.video,
+          pull: from.pull,
           credit: mix(from.credit, readyFrame.credit, k),
           headline: mix(from.headline, readyFrame.headline, k),
           settle: mix(from.settle, readyFrame.settle, k),
@@ -147,28 +157,18 @@ export function startOpening(): Promise<void> {
   function onInput(e: Event) {
     // The Telegram button (any link) works as a normal link during the intro.
     if (e.type === 'pointerdown' && (e.target as Element | null)?.closest?.('a[href]')) return;
-    // Skipped while waiting for its files: the visitor chose the first screen, next visit too.
-    markSeen();
     skip();
   }
 
-  const markSeen = () => {
-    try {
-      localStorage.setItem(SEEN_KEY, '1');
-    } catch {
-      // Storage refused after the head check: the intro still plays this once.
-    }
-  };
-
   const play = (v: HTMLVideoElement) => {
     state = 'play';
-    markSeen();
     // The video already runs (hidden under ink since it started): the clock follows it.
     const start = now() - v.currentTime * 1000;
     takeOver(introFrame(now() - start));
     cancel = onFrame((t) => {
       if (state !== 'play') return false;
       const k = t - start;
+      if (k >= intro.dissolve[0]) cls.add('intro-reveal');
       draw(introFrame(Math.min(k, intro.end)));
       if (k < intro.end) return;
       finish();
@@ -198,16 +198,9 @@ export function startOpening(): Promise<void> {
     faded(resolveReady);
   };
 
-  // Leaving through a link (Telegram) counts as seen, played or not: Back never starts the
-  // intro (Scope «Вступление и движение»). Leaving or hiding the page mid-intro: it comes back
-  // (back-forward cache, the Telegram app handing back) with the first screen ready.
-  addEventListener(
-    'click',
-    (e) => {
-      if ((e.target as Element | null)?.closest?.('a[href]')) markSeen();
-    },
-    { capture: true },
-  );
+  // Leaving or hiding the page mid-intro: it comes back (back-forward cache, the Telegram app
+  // handing back) with the first screen ready. A Back that reloads the page: the head script
+  // sees the navigation type and plays nothing.
   addEventListener('pagehide', finish);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) finish();
@@ -225,15 +218,15 @@ export function startOpening(): Promise<void> {
     if (reduced) finish();
   });
 
-  // Ready: the hero layers decoded and the video playing. It starts at once, invisible under the
-  // overlay's ink: a phone may not load a video before play() (iOS), so readiness is playback
-  // itself. Refused (a power saver, a browser rule) or broken: no intro.
-  const playable = new Promise<void>((resolve, reject) => {
+  // Ready: the video playing. It starts at once, invisible under the overlay's ink: a phone may
+  // not load a video before play() (iOS), so readiness is playback itself. Refused (a power saver,
+  // a browser rule) or broken: no intro. The hero images have until the dissolve (6.4 s); one
+  // still loading then fades in when it comes (story's loading state).
+  const loaded = new Promise<void>((resolve, reject) => {
     video.addEventListener('playing', () => resolve(), { once: true });
     video.addEventListener('error', reject, { once: true });
     video.play().catch(reject);
-  });
-  const loaded = Promise.all([playable, ...layers.map((l) => l.img.decode())]).then(
+  }).then(
     () => true,
     () => false,
   );

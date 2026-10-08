@@ -43,4 +43,12 @@ export function effectiveOpacity(page: Page, selector: string): Promise<number> 
   }, selector);
 }
 
-export { SEEN_KEY } from '../../src/blocks/opening/gate';
+/**
+ * Opens pages of this context without the intro: the browser says it saves data, one of the
+ * head script's reasons to skip it. The first screen then shows at once, its headline fading in.
+ */
+export async function noIntro(target: BrowserContext | Page): Promise<void> {
+  await target.addInitScript(() => {
+    Object.defineProperty(navigator, 'connection', { configurable: true, value: { saveData: true } });
+  });
+}

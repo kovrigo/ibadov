@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { effectiveOpacity, firstWith, htmlHas, recordClasses, SEEN_KEY } from './motion-fixtures';
+import { effectiveOpacity, firstWith, htmlHas, noIntro, recordClasses } from './motion-fixtures';
 
 // The calm version (Brief «Спокойная версия», DESIGN.md Motion): with reduced motion nothing moves
 // or scales, there is no intro, no smoke, no glint; the freeze frame is muted with its caption,
@@ -127,7 +127,7 @@ test('reduced motion switched on mid-intro: the ready first screen at once', asy
 
 test('reduced motion turned on and off again later: the headline does not fade in again', async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await ctx.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+  await noIntro(ctx);
   const page = await ctx.newPage();
   await page.goto('/');
   await page.waitForTimeout(1500);

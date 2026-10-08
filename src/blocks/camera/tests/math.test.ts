@@ -151,3 +151,30 @@ describe('zoom limit', () => {
     for (const s of [m.heroScale(1), m.passScale(1), m.freezeSchedule().zoom]) expect(s).toBeLessThanOrEqual(motion.maxScale);
   });
 });
+
+describe('seam from the first screen into services (DESIGN.md Motion)', () => {
+  test('at rest the desk is not there and the balcony is whole', () => {
+    expect(m.seamDesk(0)).toBe(0);
+    expect(m.seamHero(0)).toBe(1);
+  });
+  test('the desk is in before the balcony is half gone: the pictures cross, no dip to ink', () => {
+    expect(m.seamDesk(0.4)).toBe(1);
+    expect(m.seamHero(0.3)).toBe(1);
+    expect(m.seamHero(0.6)).toBeCloseTo(0.5, 6);
+    for (let p = 0; p <= 1; p += 0.05) expect(m.seamDesk(p) + m.seamHero(p)).toBeGreaterThanOrEqual(1);
+  });
+  test('once the first screen has left, only the desk', () => {
+    expect(m.seamHero(0.9)).toBe(0);
+    expect(m.seamDesk(1)).toBe(1);
+  });
+  test('both move continuously with the scroll', () => {
+    for (let p = 0; p < 1; p += 0.01) {
+      expect(Math.abs(m.seamDesk(p + 0.01) - m.seamDesk(p))).toBeLessThan(0.05);
+      expect(Math.abs(m.seamHero(p + 0.01) - m.seamHero(p))).toBeLessThan(0.05);
+    }
+  });
+  test('the leaving half of the cut is the cut', () => {
+    const [vh, h] = [900, 900];
+    for (const top of [0, -0.85 * h, -0.925 * h, -h]) expect(m.cutOut(top, h)).toBe(m.cutOpacity(top, h, vh));
+  });
+});

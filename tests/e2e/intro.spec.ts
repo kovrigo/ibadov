@@ -1,10 +1,11 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { TELEGRAM } from './helpers';
-import { classLog, effectiveOpacity, firstWith, htmlHas, htmlLacks, recordClasses, SEEN_KEY } from './motion-fixtures';
+import { classLog, effectiveOpacity, firstWith, htmlHas, htmlLacks, noIntro, recordClasses } from './motion-fixtures';
 
-// The intro (Brief «Вступление», plan decision 6): plays on the first visit, ends by 5 s, any key
-// gives the ready first screen in 240ms, the Telegram button works during it, and it does not
-// come back on a second visit, after Back, on 2G or with reduced motion.
+// The intro (DESIGN.md Motion «Вступление»): the customer's film plays on every opening of the
+// page, a reload too, and dissolves into the ready first screen by 7.8 s; any key, tap or
+// «Пропустить» gives the ready first screen in 240ms; the Telegram button works during it. No
+// intro after Back, with data saver, on 2G or with reduced motion. Nothing is stored.
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
 const SLACK = 150;
@@ -31,33 +32,53 @@ function videoRequests(page: Page): string[] {
   return urls;
 }
 
-test('first visit plays the intro, ends by 5 s, leaves the ready first screen', async ({ browser }) => {
+/** Opacity of the hero column's scrim (its ::before). */
+const scrimOpacity = (page: Page) =>
+  page.evaluate(() => Number(getComputedStyle(document.querySelector('[data-scene="hero"] .scene__column')!, '::before').opacity));
+/** Waits until the film has played past `seconds`. */
+const filmPast = (page: Page, seconds: number, timeout = 10_000) =>
+  page.waitForFunction(([sel, s]) => (document.querySelector(sel as string) as HTMLVideoElement).currentTime > (s as number), [VIDEO, seconds], { timeout });
+
+test('every opening plays the whole film, then the ready first screen; nothing is stored', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
   await page.goto('/');
   await htmlHas(page, 'intro-on', 3000);
   const start = (await firstWith(page, 'intro-on'))!;
   expect(start).toBeLessThanOrEqual(1500 + SLACK);
 
-  // During the intro: the overlay is up and hidden from screen readers; the button is there.
+  // During the intro: the overlay is up and hidden from screen readers. The film plays clear: the
+  // first screen's button waits with its text, unseen and not pressable.
   const overlay = page.locator('[data-opening]');
   await expect(overlay).toBeVisible();
   await expect(overlay).toHaveAttribute('aria-hidden', 'true');
-  await expect(telegramIn(page, 'scene')).toBeVisible();
-  expect(await effectiveOpacity(page, `[data-telegram="scene"] a`)).toBe(1);
-  expect(await page.evaluate((k) => localStorage.getItem(k), SEEN_KEY)).toBe('1');
-  // The wide video plays, muted, once.
-  await page.waitForFunction((sel) => (document.querySelector(sel) as HTMLVideoElement).currentTime > 0, VIDEO, { timeout: 2000 });
+  expect(await effectiveOpacity(page, `[data-telegram="scene"] a`)).toBe(0);
+  expect(await page.$eval('[data-telegram="scene"] a', (a) => getComputedStyle(a).pointerEvents)).toBe('none');
+  await expect(page.locator('[data-opening-skip]')).toBeVisible();
+  // The film plays, muted, once.
+  await filmPast(page, 0, 2000);
   const video = await page.$eval(VIDEO, (v) => {
     const el = v as HTMLVideoElement;
     return { src: el.currentSrc, muted: el.muted, loop: el.loop, controls: el.controls };
   });
-  expect(video).toEqual({ src: expect.stringContaining('intro-wide'), muted: true, loop: false, controls: false });
+  expect(video).toEqual({ src: expect.stringContaining('intro-cut'), muted: true, loop: false, controls: false });
 
-  await htmlLacks(page, 'intro-on', 6000);
+  // Mid-film (its title is up from 4.3 s): nothing of the first screen over it, the scrim off.
+  await filmPast(page, 4.5);
+  expect(await effectiveOpacity(page, VIDEO)).toBe(1);
+  for (const part of ['credit', 'headline', 'lead', 'nav', 'cue']) {
+    expect(await effectiveOpacity(page, `[data-scene="hero"] [data-part="${part}"]`), part).toBe(0);
+  }
+  expect(await scrimOpacity(page)).toBe(0);
+
+  await htmlLacks(page, 'intro-on', 8000);
   const log = await classLog(page);
   const end = log.find(([t, c]) => t > start && !c.includes('intro-on'))![0];
-  expect(end - start).toBeGreaterThanOrEqual(4400 - SLACK);
-  expect(end - start).toBeLessThanOrEqual(5000);
+  expect(end - start).toBeGreaterThanOrEqual(7800 - 300 - SLACK);
+  expect(end - start).toBeLessThanOrEqual(8400);
+  expect(await scrimOpacity(page)).toBe(1);
+  expect(await effectiveOpacity(page, `[data-telegram="scene"] a`)).toBe(1);
+  expect(await page.$eval('[data-telegram="scene"] a', (a) => getComputedStyle(a).pointerEvents)).toBe('auto');
+  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length, document.cookie])).toEqual([0, 0, '']);
 
   await expect(overlay).toBeHidden();
   // The video is let go.
@@ -102,25 +123,77 @@ test('a key press gives the ready first screen within 240ms', async ({ browser }
   await ctx.close();
 });
 
-test('the Telegram button works during the intro (desktop click, phone tap)', async ({ browser }) => {
-  for (const [viewport, where, extra] of [
-    [DESKTOP, 'scene', {}],
-    [PHONE, 'bar', { isMobile: true, hasTouch: true }],
-  ] as const) {
-    const { ctx, page } = await firstVisit(browser, viewport, extra);
+test('during the intro: the phone bar opens Telegram; on a computer a click gives the first screen, then the button', async ({ browser }) => {
+  {
+    const { ctx, page } = await firstVisit(browser, PHONE, { isMobile: true, hasTouch: true });
     await page.goto('/');
     await htmlHas(page, 'intro-on', 3000);
-    const button = telegramIn(page, where);
-    if (where === 'bar') await button.tap();
-    else await button.click();
+    await telegramIn(page, 'bar').tap();
     await page.waitForURL(TELEGRAM.url, { timeout: 3000 });
     expect(page.url()).toBe(TELEGRAM.url);
     await ctx.close();
   }
+  {
+    const { ctx, page } = await firstVisit(browser);
+    await page.goto('/');
+    await htmlHas(page, 'intro-on', 3000);
+    await filmPast(page, 1);
+    // A real click where the button stands: it is not pressable yet, the click skips the intro.
+    const box = (await telegramIn(page, 'scene').boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await htmlLacks(page, 'intro-on', 1000);
+    expect(page.url()).not.toBe(TELEGRAM.url);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForURL(TELEGRAM.url, { timeout: 3000 });
+    await ctx.close();
+  }
 });
 
-test('second visit and Back from Telegram: no intro', async ({ browser }) => {
+test('«Пропустить» gives the ready first screen within 240ms', async ({ browser }) => {
+  for (const [viewport, extra] of [
+    [DESKTOP, {}],
+    [PHONE, { isMobile: true, hasTouch: true }],
+  ] as const) {
+    const { ctx, page } = await firstVisit(browser, viewport, extra);
+    await page.goto('/');
+    await htmlHas(page, 'intro-on', 3000);
+    await filmPast(page, 1);
+    const skip = page.locator('[data-opening-skip]');
+    await expect(skip).toHaveText(/Пропустить/i);
+    // Clear of the phone bar and of the Telegram button: what is under its centre is itself.
+    const box = (await skip.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    const hit = await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('[data-opening-skip]'), [box.x + box.width / 2, box.y + box.height / 2]);
+    expect(hit).toBe(true);
+    await page.evaluate(() => {
+      addEventListener('pointerdown', () => ((window as unknown as { __tap: number }).__tap = performance.now()), { once: true, capture: true });
+    });
+    if (extra.hasTouch) await skip.tap();
+    else await skip.click();
+    await htmlLacks(page, 'intro-on', 2000);
+    const tap = await page.evaluate(() => (window as unknown as { __tap: number }).__tap);
+    const ready = (await classLog(page)).find(([t, c]) => t >= tap && !c.includes('intro-on'))![0];
+    expect(ready - tap).toBeLessThanOrEqual(240 + SLACK);
+    expect(await effectiveOpacity(page, '[data-scene="hero"] [data-part="headline"]')).toBe(1);
+    await ctx.close();
+  }
+});
+
+test('a reload and a new visit play the film again; Back from Telegram does not', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  await page.keyboard.press('Escape');
+  await htmlLacks(page, 'intro-on', 2000);
+
+  // A reload.
+  await page.reload();
+  await htmlHas(page, 'intro-on', 3000);
+  await filmPast(page, 0.5);
+  await page.keyboard.press('Escape');
+  await htmlLacks(page, 'intro-on', 2000);
+
+  // A new visit in the same browser.
   await page.goto('/');
   await htmlHas(page, 'intro-on', 3000);
   await page.keyboard.press('Escape');
@@ -136,16 +209,33 @@ test('second visit and Back from Telegram: no intro', async ({ browser }) => {
   expect(cls).not.toContain('intro-on');
   expect(cls).not.toContain('intro-wait');
   await expect(page.locator('[data-opening]')).toBeHidden();
-
-  // A second visit in the same browser.
-  await page.goto('/');
-  await page.waitForTimeout(2000);
-  expect(await firstWith(page, 'intro-wait')).toBeUndefined();
-  expect(await firstWith(page, 'intro-on')).toBeUndefined();
-  // The headline faded in (intro-fade from the head script), then the class was cleared.
-  expect(await firstWith(page, 'intro-fade')).toBeDefined();
-  expect(await page.evaluate(() => document.documentElement.className)).toBe('');
   expect(await effectiveOpacity(page, '[data-scene="hero"] [data-part="headline"]')).toBe(1);
+  await ctx.close();
+});
+
+test('portrait: the film fills the screen, then pulls back to its whole width, title inside', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser, PHONE, { isMobile: true, hasTouch: true });
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  const box = () =>
+    page.$eval(VIDEO, (v) => {
+      const r = v.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, vw: innerWidth, vh: innerHeight };
+    });
+  await filmPast(page, 2);
+  const full = await box();
+  // It covers the screen.
+  expect(full.left).toBeLessThanOrEqual(0);
+  expect(full.right).toBeGreaterThanOrEqual(full.vw);
+  expect(full.top).toBeLessThanOrEqual(0.5);
+  expect(full.bottom).toBeGreaterThanOrEqual(full.vh - 0.5);
+  await filmPast(page, 4.8);
+  const whole = await box();
+  // The frame is 1280 wide; its title spans x 240–1010 at its widest. Both ends are on screen.
+  const w = whole.right - whole.left;
+  expect(whole.left + (240 / 1280) * w).toBeGreaterThanOrEqual(0);
+  expect(whole.left + (1010 / 1280) * w).toBeLessThanOrEqual(whole.vw);
+  expect(whole.bottom - whole.top).toBeLessThan(whole.vh);
   await ctx.close();
 });
 
@@ -181,7 +271,6 @@ test('reduced motion: no intro', async ({ browser }) => {
   expect(await firstWith(page, 'intro-on')).toBeUndefined();
   await expect(page.locator('[data-opening]')).toBeHidden();
   expect(await effectiveOpacity(page, '[data-scene="hero"] [data-part="headline"]')).toBe(1);
-  expect(await page.evaluate((k) => localStorage.getItem(k), SEEN_KEY)).toBeNull();
   await ctx.close();
 });
 
@@ -211,39 +300,36 @@ test('motion script blocked: the first screen shows itself at 2.5 s', async ({ b
   // The head script still chose the intro: the hero waits under ink.
   expect(await page.evaluate(() => document.documentElement.className)).toContain('intro-wait');
   expect(await effectiveOpacity(page, HEADLINE)).toBe(0);
+  const pressable = () => page.$eval('[data-telegram="scene"] a', (a) => getComputedStyle(a).pointerEvents);
+  expect(await pressable()).toBe('none');
   // CSS alone: 2.5 s, then 480ms of fade.
   await page.waitForFunction(() => performance.now() > 3700, null, { timeout: 10_000, polling: 100 });
-  for (const part of ['credit', 'headline', 'lead', 'nav', 'cue']) {
+  for (const part of ['credit', 'headline', 'lead', 'action', 'nav', 'cue']) {
     expect(await effectiveOpacity(page, `[data-scene="hero"] [data-part="${part}"]`)).toBe(1);
   }
+  expect(await pressable()).toBe('auto');
   expect(await effectiveOpacity(page, '[data-opening]')).toBe(0);
   expect(await firstWith(page, 'intro-on')).toBeUndefined();
   await ctx.close();
 });
 
-test('hero images not ready in 1.5 s: no intro, the first screen with the headline fading in', async ({ browser }) => {
+test('hero images slow: the film still plays, the images are in when it dissolves', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
-  await recordHeadline(ctx);
   await ctx.route(/\.(avif|webp)$/, async (route) => {
     await sleep(2500);
     await route.continue().catch(() => undefined);
   });
   await page.goto('/', { waitUntil: 'commit' });
-  await htmlHas(page, 'intro-fade', 2500);
-  await page.waitForTimeout(600);
-  expect(await firstWith(page, 'intro-on')).toBeUndefined();
-  expect(await page.evaluate(() => document.documentElement.className)).not.toContain('intro-wait');
+  await htmlHas(page, 'intro-on', 3000);
+  await htmlLacks(page, 'intro-on', 9000);
   expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
-  await expect(page.locator('[data-opening]')).toBeHidden();
-  // A fade over 480ms, not a cut: the headline is seen part way.
-  const fading = (await headlineLog(page)).filter(([, o]) => o > 0.05 && o < 0.95);
-  expect(fading.length).toBeGreaterThan(0);
+  expect(await effectiveOpacity(page, '[data-scene="hero"] [data-stack="wide"]')).toBe(1);
   await ctx.close();
 });
 
-test('a key press while the intro waits for its files: the first screen, and no intro next visit', async ({ browser }) => {
+test('a key press while the intro waits for the film: the first screen, and the film next opening', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
-  await ctx.route(/\.(avif|webp)$/, async (route) => {
+  await ctx.route(VIDEO_FILE, async (route) => {
     await sleep(2500);
     await route.continue().catch(() => undefined);
   });
@@ -252,14 +338,15 @@ test('a key press while the intro waits for its files: the first screen, and no 
   await page.keyboard.press('Shift');
   await htmlLacks(page, 'intro-wait', 1000);
   await htmlLacks(page, 'intro-on', 1000);
-  expect(await page.evaluate((k) => localStorage.getItem(k), SEEN_KEY)).toBe('1');
+  await ctx.unrouteAll({ behavior: 'ignoreErrors' });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  expect(await page.evaluate(() => document.documentElement.className)).not.toContain('intro-wait');
+  expect(await page.evaluate(() => document.documentElement.className)).toContain('intro-wait');
   await ctx.close();
 });
 
-test('video not ready in 1.5 s: no intro, its download stops', async ({ browser }) => {
+test('video not ready in 1.5 s: no intro, the headline fades in, the download stops', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
+  await recordHeadline(ctx);
   await ctx.route(VIDEO_FILE, async (route) => {
     await sleep(2500);
     await route.continue().catch(() => undefined);
@@ -271,13 +358,16 @@ test('video not ready in 1.5 s: no intro, its download stops', async ({ browser 
   expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
   await expect(page.locator('[data-opening]')).toBeHidden();
   expect(await page.$eval(VIDEO, (v) => v.getAttribute('src'))).toBeNull();
+  // A fade over 480ms, not a cut: the headline is seen part way.
+  const fading = (await headlineLog(page)).filter(([, o]) => o > 0.05 && o < 0.95);
+  expect(fading.length).toBeGreaterThan(0);
   await ctx.close();
 });
 
-test('the video loads only when the intro plays, the file for the screen shape', async ({ browser }) => {
+test('the video loads only when the intro plays, one file for every screen', async ({ browser }) => {
   for (const [viewport, extra, file] of [
-    [DESKTOP, {}, 'intro-wide'],
-    [PHONE, { isMobile: true, hasTouch: true }, 'intro-vertical'],
+    [DESKTOP, {}, 'intro-cut'],
+    [PHONE, { isMobile: true, hasTouch: true }, 'intro-cut'],
   ] as const) {
     const { ctx, page } = await firstVisit(browser, viewport, extra);
     const urls = videoRequests(page);
@@ -287,15 +377,15 @@ test('the video loads only when the intro plays, the file for the screen shape',
     for (const u of urls) expect(u).toContain(file);
     await ctx.close();
   }
-  // No intro: seen before, reduced motion, an anchor in the address.
+  // No intro: data saver, reduced motion, an anchor in the address.
   const cases: [string, Parameters<Browser['newContext']>[0], string][] = [
-    ['seen', {}, '/'],
+    ['data saver', {}, '/'],
     ['reduced motion', { reducedMotion: 'reduce' }, '/'],
     ['anchor', {}, '/#final'],
   ];
   for (const [name, extra, url] of cases) {
     const { ctx, page } = await firstVisit(browser, DESKTOP, extra);
-    if (name === 'seen') await ctx.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+    if (name === 'data saver') await noIntro(ctx);
     const urls = videoRequests(page);
     await page.goto(url);
     await page.waitForTimeout(2000);
@@ -325,7 +415,7 @@ test('a motion script later than the 2.5 s reveal: the headline does not fade in
 
 test('leaving through Telegram before the intro played: Back shows no intro', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
-  await ctx.route(/\.(avif|webp)$/, async (route) => {
+  await ctx.route(VIDEO_FILE, async (route) => {
     await sleep(2500);
     await route.continue().catch(() => undefined);
   });
@@ -336,7 +426,6 @@ test('leaving through Telegram before the intro played: Back shows no intro', as
   await page.waitForURL(TELEGRAM.url);
   await page.goBack({ waitUntil: 'commit' });
   await page.waitForSelector(HEADLINE, { state: 'attached' });
-  expect(await page.evaluate((k) => localStorage.getItem(k), SEEN_KEY)).toBe('1');
   expect(await firstWith(page, 'intro-wait')).toBeUndefined();
   await ctx.close();
 });
