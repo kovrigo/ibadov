@@ -39,12 +39,16 @@ const { href, label, block = false } = Astro.props;
     color: var(--gold);
     transition: color var(--dur-hover) linear;
   }
-  .button:hover {
-    background: var(--gold);
-    color: var(--on-gold);
-  }
-  .button:hover .arrow {
-    color: var(--on-gold);
+  /* Only where a pointer hovers: after a tap a touch screen keeps :hover, and the frame would stay
+     filled when the visitor comes back from Telegram. */
+  @media (hover: hover) {
+    .button:hover {
+      background: var(--gold);
+      color: var(--on-gold);
+    }
+    .button:hover .arrow {
+      color: var(--on-gold);
+    }
   }
   .button:active {
     transform: translateY(1px);
