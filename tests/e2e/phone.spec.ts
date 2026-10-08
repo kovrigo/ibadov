@@ -131,8 +131,7 @@ test.describe('phone keyboard 390x844', () => {
       if (reached.some((o) => o.place === a.place && o.href === a.href && o.text === a.text && o.tag === a.tag)) break;
       reached.push(a);
     }
-    // The Astro dev toolbar is focusable in the dev server only; it is not part of the page.
-    const order = reached.filter((o) => o.tag !== 'astro-dev-toolbar');
+    const order = reached;
     console.log(`[phone] 390x844 Tab order (${count} focusable elements rendered): ${reached.map((o, i) => `${i + 1}. ${o.place} <${o.tag}> «${o.text}» ${o.href ?? ''}`).join(' → ') || 'none'}`);
 
     const bar = order.findIndex((o) => o.place === 'phone-bar');

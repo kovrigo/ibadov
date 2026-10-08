@@ -1,1 +1,1 @@
-{"service":{"cmd":"bun run dev --port $PORT --host 127.0.0.1 --ignore-lock","url_path":"/"}}
+{"service":{"cmd":"SITE_URL=https://example.test bun run build && bunx astro preview --port $PORT --host 127.0.0.1 --ignore-lock","url_path":"/"}}

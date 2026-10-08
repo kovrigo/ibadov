@@ -223,6 +223,7 @@ for (const [w, h] of [...WIDE_TEN, LYING, ...VERTICAL]) {
         if (!covers) {
           expect.soft(Math.abs(img.w / img.h / natural - 1), `${screen} ${id}: box aspect ${round(img.w / img.h, 4)} against natural ${round(natural, 4)}`).toBeLessThanOrEqual(0.01);
         }
+        if (!img.layer) continue; // accent textures (smoke) are not catalog images
         const entry = catalog[entryFor(img.scene, img.layer, l.portrait)];
         expect.soft(Math.abs(natural / (entry.width / entry.height) - 1), `${screen} ${id}: loaded file aspect ${round(natural, 4)} against catalog ${round(entry.width / entry.height, 4)}`).toBeLessThanOrEqual(0.01);
       }

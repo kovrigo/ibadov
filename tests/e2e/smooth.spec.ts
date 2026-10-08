@@ -1,17 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { cacheImages, hideDevToolbar, warmImages } from './motion-fixtures';
 
 // Motion stays smooth on a phone (plan «Проверки»): 390×844, the processor slowed down 4×, the
 // whole page scrolled in about 8 s. No animation frame may take longer than 100ms.
 const VIEWPORT = { width: 390, height: 844 };
 
-test('phone, 4× slower CPU: scrolling the whole page never takes a frame over 100ms', async ({ browser, baseURL }) => {
+test('phone, 4× slower CPU: scrolling the whole page never takes a frame over 100ms', async ({ browser }) => {
   test.setTimeout(180_000);
-  await warmImages(browser, baseURL!, [[VIEWPORT.width, VIEWPORT.height]]);
-
   const ctx = await browser.newContext({ viewport: VIEWPORT, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
-  await cacheImages(ctx);
-  await hideDevToolbar(ctx);
   // The intro is measured by its own spec: here the page opens on the first screen.
   await ctx.addInitScript(() => localStorage.setItem('ibadow:intro-seen', '1'));
   const page = await ctx.newPage();

@@ -201,7 +201,8 @@ for (const d of DEVICES) {
         await expect
           .poll(
             async () => {
-              const imgs = (await page.evaluate(inPageImages, scene)).filter((i) => i.w > 0 && i.h > 0 && !i.blank);
+              // Scene layers only: accent textures (smoke) carry no data-layer.
+              const imgs = (await page.evaluate(inPageImages, scene)).filter((i) => i.layer && i.w > 0 && i.h > 0 && !i.blank);
               return imgs.filter((i) => i.complete && i.natW > 1).map((i) => i.layer).sort();
             },
             { timeout: IMAGE_WAIT, intervals: [500], message: `${d.name} ${scene}: loaded image layers (wanted ${expected[scene].join(', ')})` },

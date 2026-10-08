@@ -1,51 +1,5 @@
 // Shared parts of the motion checks (intro, calm, smooth).
-//
-// The dev server transforms every image on request (seconds per file). On the real site files
-// come from a static host, so the intro's 1.5 s window is about the network, not about encoding.
-// cacheImages() keeps each image the dev server made once in this worker's memory and serves it
-// again at once; warmImages() fills that memory before the timed checks.
-import type { Browser, BrowserContext, Page } from '@playwright/test';
-
-type Cached = { status: number; headers: Record<string, string>; body: Buffer };
-const images = new Map<string, Cached>();
-const IMAGE = /\/_image\?|\.(avif|webp|png|jpe?g)(\?|$)/;
-
-export async function cacheImages(target: BrowserContext | Page): Promise<void> {
-  await target.route(IMAGE, async (route) => {
-    const url = route.request().url();
-    const hit = images.get(url);
-    if (hit) return route.fulfill(hit);
-    const res = await route.fetch();
-    const entry = { status: res.status(), headers: res.headers(), body: await res.body() };
-    if (res.ok()) images.set(url, entry);
-    return route.fulfill(entry);
-  });
-}
-
-/** Loads the page at each size and scrolls it through, so every image is in the cache. */
-export async function warmImages(browser: Browser, baseURL: string, sizes: [number, number][]): Promise<void> {
-  for (const [width, height] of sizes) {
-    const ctx = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce' });
-    await cacheImages(ctx);
-    const page = await ctx.newPage();
-    await page.goto(baseURL, { waitUntil: 'load' });
-    const total = await page.evaluate(() => document.documentElement.scrollHeight);
-    for (let y = 0; y <= total; y += Math.round(height / 2)) {
-      await page.evaluate((y) => window.scrollTo(0, y), y);
-      await page.waitForTimeout(50);
-    }
-    // Every image on show has arrived (hidden ones stay lazy and never load).
-    await page.evaluate(() =>
-      Promise.all(
-        [...document.images]
-          .filter((i) => i.getClientRects().length > 0 && !i.complete)
-          .map((i) => new Promise((r) => (i.addEventListener('load', r, { once: true }), i.addEventListener('error', r, { once: true })))),
-      ),
-    );
-    // The intro's aerial frame is the final scene's file: scrolling past the final cached it.
-    await ctx.close();
-  }
-}
+import type { BrowserContext, Page } from '@playwright/test';
 
 /**
  * Records, in the page, every class change on <html> with its time since navigation start
@@ -90,14 +44,3 @@ export function effectiveOpacity(page: Page, selector: string): Promise<number> 
 }
 
 export const TELEGRAM = 'https://t.me/ibadow';
-
-/** The dev server adds its toolbar at the bottom centre, over the phone bar. The built site has none. */
-export async function hideDevToolbar(target: BrowserContext | Page): Promise<void> {
-  await target.addInitScript(() => {
-    document.addEventListener('DOMContentLoaded', () => {
-      const s = document.createElement('style');
-      s.textContent = 'astro-dev-toolbar{display:none!important}';
-      document.head.append(s);
-    });
-  });
-}

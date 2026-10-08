@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { cacheImages, classLog, effectiveOpacity, firstWith, hideDevToolbar, htmlHas, htmlLacks, recordClasses, TELEGRAM, warmImages } from './motion-fixtures';
+import { classLog, effectiveOpacity, firstWith, htmlHas, htmlLacks, recordClasses, TELEGRAM } from './motion-fixtures';
 
 // The intro (Brief «Вступление», plan decision 6): plays on the first visit, ends by 5 s, any key
 // gives the ready first screen in 240ms, the Telegram button works during it, and it does not
@@ -10,19 +10,9 @@ const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
 const SLACK = 150;
 
-test.beforeAll(async ({ browser, baseURL }) => {
-  test.setTimeout(180_000);
-  await warmImages(browser, baseURL!, [
-    [DESKTOP.width, DESKTOP.height],
-    [PHONE.width, PHONE.height],
-  ]);
-});
-
 async function firstVisit(browser: Browser, viewport = DESKTOP, extra: Parameters<Browser['newContext']>[0] = {}) {
   const ctx = await browser.newContext({ viewport, ...extra });
-  await cacheImages(ctx);
   await recordClasses(ctx);
-  await hideDevToolbar(ctx);
   await ctx.route('https://t.me/**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Telegram</title><p>t.me</p>' }));
   const page = await ctx.newPage();
   return { ctx, page };

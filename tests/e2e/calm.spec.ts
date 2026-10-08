@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { effectiveOpacity, firstWith, hideDevToolbar, htmlHas, recordClasses, cacheImages, warmImages } from './motion-fixtures';
+import { effectiveOpacity, firstWith, htmlHas, recordClasses } from './motion-fixtures';
 
 // The calm version (Brief «Спокойная версия», DESIGN.md Motion): with reduced motion nothing moves
 // or scales, there is no intro, no smoke, no glint; the freeze frame is muted with its caption,
@@ -40,7 +40,6 @@ for (const viewport of SIZES) {
   test(`reduced motion at ${viewport.width}×${viewport.height}: nothing moves, everything is there`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport, reducedMotion: 'reduce' });
     await recordClasses(ctx);
-    await hideDevToolbar(ctx);
     const page = await ctx.newPage();
     await page.goto('/', { waitUntil: 'load' });
 
@@ -101,13 +100,10 @@ for (const viewport of SIZES) {
   });
 }
 
-test('reduced motion switched on mid-intro: the ready first screen at once', async ({ browser, baseURL }) => {
+test('reduced motion switched on mid-intro: the ready first screen at once', async ({ browser }) => {
   test.setTimeout(180_000);
-  await warmImages(browser, baseURL!, [[1440, 900]]);
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  await cacheImages(ctx);
   await recordClasses(ctx);
-  await hideDevToolbar(ctx);
   const page = await ctx.newPage();
   await page.goto('/');
   await htmlHas(page, 'intro-on', 3000);
