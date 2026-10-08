@@ -16,8 +16,15 @@ const facts = {
 
 const services = ['Купить', 'Продать'] as const;
 
+// The menu of the first screen (customer's frame, 8 October 2026): each item names a scene.
+const menu = [
+  { label: 'Услуги', scene: 'services' },
+  { label: 'Партнёры', scene: 'partners' },
+  { label: 'Контакты', scene: 'final' },
+] as const;
+
 const chapters = {
-  hero: { credit: name, headline: tagline, lead: `${city}.` },
+  hero: { credit: name, headline: tagline, lead: `${city}.`, menu, menuName: 'Разделы', cue: 'Пролистайте' },
   services: { title: 'У каждого решения свой адрес.', items: services },
   freeze: { credit: name, caption: facts.rank },
   numbers: { title: 'Цифры', facts: [facts.sales, facts.followers] as const },
@@ -36,7 +43,7 @@ const contacts = {
 // Screen-reader descriptions, one per scene (Brief «Доступность»). They name only what is in the picture.
 const descriptions = {
   hero: 'Сергей Ибадов в тёмном костюме на балконе, за ним вечерний Исаакиевский собор и Нева',
-  services: 'Размытые огни набережной и Невы вечером',
+  services: 'Вечер за мраморным столом: часы, ключи, планы квартир, за окном Исаакиевский собор и Нева',
   freeze: 'Сергей Ибадов крупным планом: тёмные очки, тёмный костюм, рука на галстуке',
   numbers: 'Размытые огни вечернего города',
   partners: 'Сергей Ибадов в тёмном костюме и очках на мраморной лестнице',

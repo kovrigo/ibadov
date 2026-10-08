@@ -49,11 +49,14 @@ describe('built page', () => {
     for (const s of sections) expect({ scene: s.name, h2: count(s.html, /<h2[\s>]/g) }).toEqual({ scene: s.name, h2: s.name === 'hero' ? 0 : 1 });
   });
 
-  test('links: only Telegram and Instagram, and both present', () => {
+  test('links: Telegram and Instagram outside, the menu to scenes on the page', () => {
     const hrefs = [...body.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)].map((m) => decode(m[1]!));
     expect(hrefs).toContain('https://t.me/ibadow');
     expect(hrefs).toContain('https://instagram.com/ibadow');
-    for (const h of hrefs) expect(['https://t.me/ibadow', 'https://instagram.com/ibadow']).toContain(h);
+    const menu = texts.chapter('hero').menu.map((m) => `#${m.scene}`);
+    expect(hrefs.filter((h) => h.startsWith('#'))).toEqual(menu);
+    for (const h of menu) expect(body).toContain(`id="${h.slice(1)}"`);
+    for (const h of hrefs) expect(['https://t.me/ibadow', 'https://instagram.com/ibadow', ...menu]).toContain(h);
   });
 
   test('the Meta footnote', () => {
@@ -94,6 +97,8 @@ describe('built page', () => {
     };
     for (const c of ['hero', 'services', 'freeze', 'numbers', 'partners', 'final'] as const) add(texts.chapter(c));
     add(texts.contacts());
+    // The hero sets its headline in two lines with the last word in gold: one element per word.
+    for (const w of texts.chapter('hero').headline.split(' ')) allowed.add(w);
     const visible = body
       .replace(/<script[\s\S]*?<\/script>/g, '')
       .replace(/<style[\s\S]*?<\/style>/g, '')

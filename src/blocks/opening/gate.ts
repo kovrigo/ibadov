@@ -1,8 +1,8 @@
 // The opening's decision before the first paint (plan decision 6). shouldPlayIntro() is the
 // logic; gateScript() is the same logic as the tiny inline script in <head>, which also preloads
-// the intro's images when it says yes. tests/gate.test.ts runs both over every branch.
-// What the head cannot know yet (images ready within 1.5 s, the page still at the top) the
-// opening's motion script checks before it plays.
+// the hero images when it says yes. tests/gate.test.ts runs both over every branch.
+// What the head cannot know yet (hero images and video ready within 1.5 s, the page still at the
+// top) the opening's motion script checks before it plays.
 
 export const SEEN_KEY = 'ibadow:intro-seen';
 
@@ -26,7 +26,7 @@ export function shouldPlayIntro(env: IntroEnv): boolean {
   }
 }
 
-/** An AVIF image to preload when the intro may play: [media, srcset, sizes]. */
+/** An AVIF hero image to preload when the intro may play: [media, srcset, sizes]. */
 export type Preload = readonly [media: string, srcset: string, sizes: string];
 
 /**

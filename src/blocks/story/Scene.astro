@@ -1,5 +1,7 @@
 ---
 // One chapter: a full-screen section. Image box, accent place, text column on its scrim.
+// Slot "chrome": pieces placed on the scene itself rather than in the text column (the first
+// screen's menu and scroll hint); they follow the column in reading order.
 import type { SceneName } from './index';
 interface Props {
   name: SceneName;
@@ -16,11 +18,12 @@ const style = Object.entries(vars)
 const framed = 'limit' in vars;
 ---
 
-<section class:list={['scene', `scene--${name}`, { 'scene--framed': framed }]} data-scene={name} style={style || undefined}>
+<section id={name} class:list={['scene', `scene--${name}`, { 'scene--framed': framed }]} data-scene={name} style={style || undefined}>
   <div class="scene__media" data-media><slot name="media" /></div>
   {accent === 'overlay' && <div class="scene__accent" data-accent><slot name="accent" /></div>}
   <div class="scene__column">
     {accent === 'column' && <div class="scene__accent-column" data-accent><slot name="accent" /></div>}
     <div class="scene__text" data-text><slot /></div>
   </div>
+  <slot name="chrome" />
 </section>

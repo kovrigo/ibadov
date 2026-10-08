@@ -1,17 +1,14 @@
 ---
 // The opening's inline <head> script (fills the Frame's "head" slot). It runs before the first
-// paint: it decides whether the intro may play and, if so, preloads the intro's images for the
-// current screen shape. Logic: gate.ts.
+// paint: it decides whether the intro may play and, if so, preloads the hero images for the
+// current screen shape. The video starts loading from Opening.astro. Logic: gate.ts.
 import { gateScript, type Preload } from './gate';
-import { aerialPictures, heroPictures } from './pictures';
+import { heroPictures } from './pictures';
 
-const aerial = await aerialPictures();
 const hero = await heroPictures();
 const wide = '(orientation: landscape)';
 const vertical = '(orientation: portrait)';
 const preloads: Preload[] = [
-  [wide, aerial.wide.avif, aerial.wideSizes],
-  [vertical, aerial.tall.avif, aerial.tallSizes],
   ...hero.wide.map((p): Preload => [wide, p.avif, hero.wideSizes]),
   ...hero.vertical.map((p): Preload => [vertical, p.avif, hero.verticalSizes]),
 ];

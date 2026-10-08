@@ -1,12 +1,12 @@
 // Opening (level 3): the intro over the first screen (Brief «Вступление», plan decision 6).
-// The head script already chose: "intro-wait" means the intro may play. Here: wait up to 1.5 s
-// from navigation start for the intro and hero images; ready and still at the top → play 0–4.7 s;
-// otherwise the first screen at once with the headline fading in. A tap outside the button, the
-// wheel, a scroll or any key → the ready first screen in 240ms, and the intro counts as seen even
-// if it had not started. The Telegram button is a plain link and is never intercepted; leaving
-// through it marks the intro seen. Reduced motion (or
-// switched on mid-intro): the ready first screen. Returns a promise that resolves when the first
-// screen is ready.
+// The head script already chose: "intro-wait" means the intro may play, and Opening.astro started
+// the video. Here: wait up to 1.5 s from navigation start for the hero images and the video;
+// ready and still at the top → play 0–4.4 s; otherwise the first screen at once with the headline
+// fading in, and the video download stops. A tap outside the button, the wheel, a scroll or any
+// key → the ready first screen in 240ms, and the intro counts as seen even if it had not started.
+// The Telegram button is a plain link and is never intercepted; leaving through it marks the
+// intro seen. Reduced motion (or switched on mid-intro): the ready first screen. Returns a promise
+// that resolves when the first screen is ready.
 import { story } from '../story';
 import { onMotionSettingChange, prefersReducedMotion } from '../../platform/motion-setting';
 import { clearStyle, ease, now, onFrame, setStyle, tween, type MotionProp } from '../../platform/motion-loop';
@@ -28,7 +28,16 @@ const INPUTS = ['pointerdown', 'wheel', 'touchmove', 'keydown', 'scroll'] as con
 
 export function startOpening(): Promise<void> {
   const cls = document.documentElement.classList;
+  const video = document.querySelector<HTMLVideoElement>('[data-opening-video]');
+  /** Stops the video and drops its file (and any download still running). */
+  const release = () => {
+    if (!video?.getAttribute('src')) return;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  };
   if (prefersReducedMotion()) {
+    release();
     cls.remove('intro-wait', 'intro-on');
     return Promise.resolve();
   }
@@ -45,8 +54,10 @@ export function startOpening(): Promise<void> {
   const hero = story.scenes().find((s) => s.name === 'hero');
   const q = (sel?: string) => (sel ? document.querySelector<El>(sel) : null);
   const overlay = q('[data-opening]');
-  const aerial = overlay?.querySelector<HTMLImageElement>('[data-opening-aerial]') ?? null;
-  const texts = { credit: q(hero?.parts.credit), headline: q(hero?.parts.headline), lead: q(hero?.parts.lead) };
+  const part = (name: string) => q(hero?.parts[name] ?? `[data-scene="hero"] [data-part="${name}"]`);
+  const credit = part('credit');
+  // Headline, lead, nav and cue appear together; nav and cue may be absent on some screens.
+  const titles = ['headline', 'lead', 'nav', 'cue'].map(part);
   const stack = hero ? Object.values(hero.stacks).map(q).find((el) => el && el.getClientRects().length > 0) : null;
   const layers = [...(stack?.querySelectorAll<HTMLImageElement>('img[data-layer]') ?? [])].map((img) => ({
     img,
@@ -78,23 +89,22 @@ export function startOpening(): Promise<void> {
     }
   };
 
-  // The wait: ink over the image, the credit, headline and lead not shown yet, layers at rest.
-  let current: IntroFrame = { overlay: 1, aerial: 0, aerialScale: 1, credit: 0, headline: 0, settle: 1 };
+  // The wait: ink over the image, the video not shown, the credit and titles not shown yet,
+  // layers at rest.
+  let current: IntroFrame = { overlay: 1, video: 0, credit: 0, headline: 0, settle: 1 };
   const draw = (f: IntroFrame) => {
     current = f;
     set(overlay, 'opacity', String(f.overlay));
-    set(aerial, 'opacity', String(f.aerial));
-    set(aerial, 'transform', `scale(${f.aerialScale})`);
-    set(texts.credit, 'opacity', String(f.credit));
-    set(texts.headline, 'opacity', String(f.headline));
-    set(texts.lead, 'opacity', String(f.headline));
+    set(video, 'opacity', String(f.video));
+    set(credit, 'opacity', String(f.credit));
+    for (const el of titles) set(el, 'opacity', String(f.headline));
     for (const l of layers) set(l.picture, 'transform', scaleAbout(layerZoom(l.speed, f.settle), anchor[0], anchor[1], box.w, box.h));
   };
   /** Take over from the CSS wait: same picture, now held by inline styles. */
   const takeOver = (f: IntroFrame) => {
     measure();
     draw(f);
-    for (const el of [overlay, aerial, ...layers.map((l) => l.picture)]) set(el, 'willChange', 'transform, opacity');
+    for (const el of [overlay, video, ...layers.map((l) => l.picture)]) set(el, 'willChange', 'transform, opacity');
     cls.add('intro-on');
     cls.remove('intro-wait');
   };
@@ -104,6 +114,7 @@ export function startOpening(): Promise<void> {
     state = 'done';
     cancel?.();
     for (const t of INPUTS) removeEventListener(t, onInput, true);
+    release();
     cls.remove('intro-on', 'intro-wait');
     for (const el of touched) clearStyle(el);
     touched.clear();
@@ -115,6 +126,7 @@ export function startOpening(): Promise<void> {
     if (state === 'wait') takeOver(current);
     state = 'skip';
     cancel?.();
+    video?.pause();
     const from = current;
     const mix = (a: number, b: number, k: number) => a + (b - a) * k;
     cancel = tween({
@@ -123,8 +135,7 @@ export function startOpening(): Promise<void> {
       update: (k) =>
         draw({
           overlay: mix(from.overlay, readyFrame.overlay, k),
-          aerial: mix(from.aerial, readyFrame.aerial, k),
-          aerialScale: from.aerialScale,
+          video: from.video,
           credit: mix(from.credit, readyFrame.credit, k),
           headline: mix(from.headline, readyFrame.headline, k),
           settle: mix(from.settle, readyFrame.settle, k),
@@ -136,7 +147,7 @@ export function startOpening(): Promise<void> {
   function onInput(e: Event) {
     // The Telegram button (any link) works as a normal link during the intro.
     if (e.type === 'pointerdown' && (e.target as Element | null)?.closest?.('a[href]')) return;
-    // Skipped while waiting for its images: the visitor chose the first screen, next visit too.
+    // Skipped while waiting for its files: the visitor chose the first screen, next visit too.
     markSeen();
     skip();
   }
@@ -149,11 +160,12 @@ export function startOpening(): Promise<void> {
     }
   };
 
-  const play = () => {
+  const play = (v: HTMLVideoElement) => {
     state = 'play';
     markSeen();
-    takeOver(introFrame(0));
-    const start = now();
+    // The video already runs (hidden under ink since it started): the clock follows it.
+    const start = now() - v.currentTime * 1000;
+    takeOver(introFrame(now() - start));
     cancel = onFrame((t) => {
       if (state !== 'play') return false;
       const k = t - start;
@@ -172,7 +184,9 @@ export function startOpening(): Promise<void> {
   const fallback = () => {
     state = 'done';
     for (const t of INPUTS) removeEventListener(t, onInput, true);
-    if (texts.headline && Number(getComputedStyle(texts.headline).opacity) > 0) {
+    release();
+    const headline = titles[0];
+    if (headline && Number(getComputedStyle(headline).opacity) > 0) {
       faded(() => {
         cls.remove('intro-wait');
         resolveReady();
@@ -199,7 +213,7 @@ export function startOpening(): Promise<void> {
     if (document.hidden) finish();
   });
 
-  if (!overlay || !aerial || !stack || !layers.length) {
+  if (!overlay || !video || !stack || !layers.length) {
     fallback();
     return ready;
   }
@@ -211,14 +225,22 @@ export function startOpening(): Promise<void> {
     if (reduced) finish();
   });
 
-  const decoded = Promise.all([aerial, ...layers.map((l) => l.img)].map((img) => img.decode())).then(
+  // Ready: the hero layers decoded and the video playing. It starts at once, invisible under the
+  // overlay's ink: a phone may not load a video before play() (iOS), so readiness is playback
+  // itself. Refused (a power saver, a browser rule) or broken: no intro.
+  const playable = new Promise<void>((resolve, reject) => {
+    video.addEventListener('playing', () => resolve(), { once: true });
+    video.addEventListener('error', reject, { once: true });
+    video.play().catch(reject);
+  });
+  const loaded = Promise.all([playable, ...layers.map((l) => l.img.decode())]).then(
     () => true,
     () => false,
   );
   const limit = new Promise<boolean>((r) => setTimeout(() => r(false), Math.max(0, WAIT_LIMIT - performance.now())));
-  Promise.race([decoded, limit]).then((ok) => {
+  Promise.race([loaded, limit]).then((ok) => {
     if (state !== 'wait') return;
-    if (ok && performance.now() <= WAIT_LIMIT && scrollY === 0) play();
+    if (ok && performance.now() <= WAIT_LIMIT && scrollY === 0) play(video);
     else fallback();
   });
 

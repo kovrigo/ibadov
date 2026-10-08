@@ -20,6 +20,17 @@ async function firstVisit(browser: Browser, viewport = DESKTOP, extra: Parameter
 const telegramIn = (page: Page, where: 'scene' | 'bar') =>
   page.locator(`[data-telegram="${where}"] a[href="${TELEGRAM.url}"]`).first();
 
+const VIDEO = '[data-opening-video]';
+const VIDEO_FILE = /\.mp4(\?|$)/;
+/** Every request for an intro video file the page makes from now on. */
+function videoRequests(page: Page): string[] {
+  const urls: string[] = [];
+  page.on('request', (r) => {
+    if (VIDEO_FILE.test(r.url())) urls.push(r.url());
+  });
+  return urls;
+}
+
 test('first visit plays the intro, ends by 5 s, leaves the ready first screen', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
   await page.goto('/');
@@ -34,16 +45,26 @@ test('first visit plays the intro, ends by 5 s, leaves the ready first screen', 
   await expect(telegramIn(page, 'scene')).toBeVisible();
   expect(await effectiveOpacity(page, `[data-telegram="scene"] a`)).toBe(1);
   expect(await page.evaluate((k) => localStorage.getItem(k), SEEN_KEY)).toBe('1');
+  // The wide video plays, muted, once.
+  await page.waitForFunction((sel) => (document.querySelector(sel) as HTMLVideoElement).currentTime > 0, VIDEO, { timeout: 2000 });
+  const video = await page.$eval(VIDEO, (v) => {
+    const el = v as HTMLVideoElement;
+    return { src: el.currentSrc, muted: el.muted, loop: el.loop, controls: el.controls };
+  });
+  expect(video).toEqual({ src: expect.stringContaining('intro-wide'), muted: true, loop: false, controls: false });
 
   await htmlLacks(page, 'intro-on', 6000);
   const log = await classLog(page);
   const end = log.find(([t, c]) => t > start && !c.includes('intro-on'))![0];
-  expect(end - start).toBeGreaterThanOrEqual(4700 - SLACK);
+  expect(end - start).toBeGreaterThanOrEqual(4400 - SLACK);
   expect(end - start).toBeLessThanOrEqual(5000);
 
   await expect(overlay).toBeHidden();
-  expect(await effectiveOpacity(page, '[data-scene="hero"] [data-part="headline"]')).toBe(1);
-  expect(await effectiveOpacity(page, '[data-scene="hero"] [data-part="credit"]')).toBe(1);
+  // The video is let go.
+  expect(await page.$eval(VIDEO, (v) => v.getAttribute('src'))).toBeNull();
+  for (const part of ['credit', 'headline', 'lead', 'nav', 'cue']) {
+    expect(await effectiveOpacity(page, `[data-scene="hero"] [data-part="${part}"]`)).toBe(1);
+  }
   const pictures = await page.$$eval('[data-scene="hero"] [data-stack] > picture', (els) => els.map((e) => getComputedStyle(e).transform));
   for (const t of pictures) expect(t).toBe('none');
   await ctx.close();
@@ -192,7 +213,7 @@ test('motion script blocked: the first screen shows itself at 2.5 s', async ({ b
   expect(await effectiveOpacity(page, HEADLINE)).toBe(0);
   // CSS alone: 2.5 s, then 480ms of fade.
   await page.waitForFunction(() => performance.now() > 3700, null, { timeout: 10_000, polling: 100 });
-  for (const part of ['credit', 'headline', 'lead']) {
+  for (const part of ['credit', 'headline', 'lead', 'nav', 'cue']) {
     expect(await effectiveOpacity(page, `[data-scene="hero"] [data-part="${part}"]`)).toBe(1);
   }
   expect(await effectiveOpacity(page, '[data-opening]')).toBe(0);
@@ -200,7 +221,7 @@ test('motion script blocked: the first screen shows itself at 2.5 s', async ({ b
   await ctx.close();
 });
 
-test('images not ready in 1.5 s: no intro, the first screen with the headline fading in', async ({ browser }) => {
+test('hero images not ready in 1.5 s: no intro, the first screen with the headline fading in', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
   await recordHeadline(ctx);
   await ctx.route(/\.(avif|webp)$/, async (route) => {
@@ -220,7 +241,7 @@ test('images not ready in 1.5 s: no intro, the first screen with the headline fa
   await ctx.close();
 });
 
-test('a key press while the intro waits for its images: the first screen, and no intro next visit', async ({ browser }) => {
+test('a key press while the intro waits for its files: the first screen, and no intro next visit', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
   await ctx.route(/\.(avif|webp)$/, async (route) => {
     await sleep(2500);
@@ -235,6 +256,53 @@ test('a key press while the intro waits for its images: the first screen, and no
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   expect(await page.evaluate(() => document.documentElement.className)).not.toContain('intro-wait');
   await ctx.close();
+});
+
+test('video not ready in 1.5 s: no intro, its download stops', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await ctx.route(VIDEO_FILE, async (route) => {
+    await sleep(2500);
+    await route.continue().catch(() => undefined);
+  });
+  await page.goto('/', { waitUntil: 'commit' });
+  await htmlHas(page, 'intro-fade', 2500);
+  await page.waitForTimeout(600);
+  expect(await firstWith(page, 'intro-on')).toBeUndefined();
+  expect(await effectiveOpacity(page, HEADLINE)).toBe(1);
+  await expect(page.locator('[data-opening]')).toBeHidden();
+  expect(await page.$eval(VIDEO, (v) => v.getAttribute('src'))).toBeNull();
+  await ctx.close();
+});
+
+test('the video loads only when the intro plays, the file for the screen shape', async ({ browser }) => {
+  for (const [viewport, extra, file] of [
+    [DESKTOP, {}, 'intro-wide'],
+    [PHONE, { isMobile: true, hasTouch: true }, 'intro-vertical'],
+  ] as const) {
+    const { ctx, page } = await firstVisit(browser, viewport, extra);
+    const urls = videoRequests(page);
+    await page.goto('/');
+    await htmlHas(page, 'intro-on', 3000);
+    expect(urls.length).toBeGreaterThan(0);
+    for (const u of urls) expect(u).toContain(file);
+    await ctx.close();
+  }
+  // No intro: seen before, reduced motion, an anchor in the address.
+  const cases: [string, Parameters<Browser['newContext']>[0], string][] = [
+    ['seen', {}, '/'],
+    ['reduced motion', { reducedMotion: 'reduce' }, '/'],
+    ['anchor', {}, '/#final'],
+  ];
+  for (const [name, extra, url] of cases) {
+    const { ctx, page } = await firstVisit(browser, DESKTOP, extra);
+    if (name === 'seen') await ctx.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+    const urls = videoRequests(page);
+    await page.goto(url);
+    await page.waitForTimeout(2000);
+    expect(await firstWith(page, 'intro-on'), name).toBeUndefined();
+    expect(urls, name).toEqual([]);
+    await ctx.close();
+  }
 });
 
 test('a motion script later than the 2.5 s reveal: the headline does not fade in twice', async ({ browser }) => {

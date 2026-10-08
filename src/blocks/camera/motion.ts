@@ -115,12 +115,12 @@ export function startCamera(): void {
     stack('vertical', ['phone-back', 'phone-near']);
   }
 
-  const plates = (['services', 'numbers'] as const).flatMap((n) => {
+  const plates = (['numbers'] as const).flatMap((n) => {
     const v = view(n);
     const img = v && q(v.scene.layers.plate);
     return v && img ? [{ v, img }] : [];
   });
-  const pushes = (['partners', 'final'] as const).flatMap((n) => {
+  const pushes = (['services', 'partners', 'final'] as const).flatMap((n) => {
     const v = view(n);
     const el = v && q(v.scene.stacks.main);
     return v && el ? [{ v, el }] : [];

@@ -1,13 +1,11 @@
-"""The Brief's colour grade (section «Цветокоррекция») and its checks.
+"""The colour grade and its checks.
 
-Ported from the design-stage probe that produced the Brief's numbers.
-Hues in HSV degrees, saturation in HSV. Black point `ink` #0B0908, white
-point `text` #EDE5D8.
+The customer's frames are the reference (8 October 2026: "here is the right
+colour grade"). Hues in HSV degrees, saturation in HSV.
 """
 import numpy as np
 
-INK = np.array([0x0B, 0x09, 0x08], np.float32) / 255
-IVORY = np.array([0xED, 0xE5, 0xD8], np.float32) / 255
+AMBER_HUE = 28.0
 
 
 def rgb2hsv(a):
@@ -34,27 +32,34 @@ def lum(a):
 
 
 def grade(a, kind):
-    """kind: 'composite' (the two AI frames) or 'photo' (the real photos)."""
+    """kind: 'composite' (the customer's frames) or 'photo' (the real photos).
+
+    The customer's frames carry the grade the customer chose (8 October 2026):
+    they stay as they are. The photos are brought to the same look: warm amber
+    mids, gold highlights, deep warm blacks, no green or blue casts.
+    """
     a = a.astype(np.float32)
-    h, s, v = rgb2hsv(a)
     if kind == "composite":
-        ob = band(h, 8, 40, 8); h = h + ob * 6; s = s * (1 - 0.30 * ob) * 0.92
-    else:
-        s = s * (1 - 0.65 * band(h, 50, 200, 15)) * (1 + 0.10 * band(h, 10, 40, 8))
-    a = hsv2rgb(h, np.clip(s, 0, 1), np.clip(v, 0, 1))
-    if kind == "photo":
-        a = np.clip(a, 0, 1) ** 0.9
+        return a
+    h, s, v = rgb2hsv(a)
+    L0 = lum(a)
+    s = s * (1 - 0.70 * band(h, 62, 200, 15))
+    h = h - (h - 34) * 0.6 * band(h, 38, 80, 8)  # yellowish highlights (hair) to gold
+    # Near-neutral tones take the amber hue: most in the mids, little in deep
+    # shadows and in the white shirt.
+    w = np.clip(1 - s / 0.35, 0, 1) * np.clip(L0 / 0.05, 0, 1) * np.clip((0.85 - L0) / 0.35, 0, 1)
+    h = h + (((AMBER_HUE - h + 180) % 360) - 180) * w
+    gain = 1.5 + (1.22 - 1.5) * np.clip(s / 0.35, 0, 1)  # skin gains less than greys
+    s = np.maximum(s * gain, 0.26 * w * np.clip(L0 / 0.15, 0, 1))
+    a = hsv2rgb(h, np.clip(s, 0, 1), v)
     L = np.clip(lum(a)[..., None], 1e-4, 1)
-    Ln = np.clip(0.35 + (L - 0.35) * 1.12, 0, 1) if kind == "composite" else np.clip(0.30 + (L - 0.30) * 1.08, 0, 1)
-    a = a * (Ln / L); L = Ln
-    sh = np.clip(L / 0.06, 0, 1) * np.clip(1 - L / 0.30, 0, 1); hi = np.clip((L - 0.55) / 0.45, 0, 1)
-    a = a + sh * np.array([0.030, 0.010, -0.015]) * (0.5 if kind == "photo" else 0.2) \
-          + hi * np.array([0.02, 0.005, -0.035]) * (1.0 if kind == "photo" else 0.5)
-    return np.clip(INK + np.clip(a, 0, 1) * (IVORY - INK), 0, 1).astype(np.float32)
+    Ln = np.clip(L ** 0.88 * 1.14, 0, 1)
+    return np.clip(a * (Ln / L), 0, 1).astype(np.float32)
 
 
 def checks(a):
-    """The Brief's checks on a graded image: list of (ok, description).
+    """The grade's checks on an image: list of (ok, description). Limits come
+    from the customer's three frames (balcony, aerial, desk), with some room.
 
     Brightness is luminance 0.2126 R + 0.7152 G + 0.0722 B on 8-bit values.
     """
@@ -62,13 +67,12 @@ def checks(a):
     L = lum(q); h, s, _ = rgb2hsv(q)
     out = []
     deep = q[L < 0.08].mean(0) * 255
-    lo, hi = np.array([0x0D, 0x0A, 0x09]), np.array([0x10, 0x0C, 0x0A])
-    # One level of 255 per channel: the Brief's range is itself 1-3 levels wide.
-    out.append((bool(np.all(deep >= lo - 1.5) and np.all(deep <= hi + 1.5)), "deep shadows #%02X%02X%02X in #0D0A09..#100C0A (±1)" % tuple(np.round(deep).astype(int))))
+    lo, hi = np.array([0x09, 0x06, 0x03]), np.array([0x10, 0x0C, 0x0A])
+    warm = deep[0] >= deep[1] >= deep[2]
+    out.append((bool(np.all(deep >= lo) and np.all(deep <= hi) and warm), "deep shadows #%02X%02X%02X warm, in #090603..#100C0A" % tuple(np.round(deep).astype(int))))
     sat = float(s[L > 0.25].mean())
-    out.append((0.24 <= sat <= 0.44, f"midtone saturation {sat:.3f} in 0.24..0.44"))
-    hue = float(h[(L > 0.6) & (s > 0.02)].mean()) if ((L > 0.6) & (s > 0.02)).any() else float("nan")
-    out.append((29 <= hue <= 39, f"highlight hue {hue:.1f} in 29..39"))
-    mx = q.reshape(-1, 3).max(0) * 255
-    out.append((bool(np.all(mx <= np.array([0xED, 0xE5, 0xD8]) + 0.5)), "brightest point within #EDE5D8"))
+    out.append((0.38 <= sat <= 0.65, f"midtone saturation {sat:.3f} in 0.38..0.65"))
+    hl = np.radians(h[(L > 0.6) & (s > 0.02)])  # circular mean: reds sit on both sides of 0
+    hue = float(np.degrees(np.arctan2(np.sin(hl).mean(), np.cos(hl).mean()))) if hl.size else float("nan")
+    out.append((15 <= hue <= 40, f"highlight hue {hue:.1f} in 15..40"))
     return out

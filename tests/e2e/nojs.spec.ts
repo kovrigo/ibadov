@@ -189,7 +189,7 @@ for (const d of DEVICES) {
       const l: Layout = await layout(page);
       const expected: Record<SceneName, string[]> = {
         hero: l.portrait ? ['phone-back', 'phone-near'] : ['far', 'band', 'near'],
-        services: ['plate'],
+        services: ['photo'],
         freeze: ['close', 'close-muted'],
         numbers: ['plate'],
         partners: ['photo'],

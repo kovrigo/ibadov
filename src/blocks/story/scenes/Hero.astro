@@ -1,5 +1,7 @@
 ---
-// Scene 2, first screen: the balcony frame in layers, the credit as the page's only h1.
+// Scene 2, first screen: the balcony frame in layers, composed as the customer's frame. Wide: the
+// name top left, the menu top right, the headline in two lines with its last word in gold, the
+// lead, the button, the scroll hint bottom left. Vertical: name, headline and lead at the bottom.
 import Scene from '../Scene.astro';
 import Layer from '../Layer.astro';
 import Credit from '../../../design/Credit.astro';
@@ -12,6 +14,10 @@ const [far, band, near, back, front] = await Promise.all(
   (['balcony-far', 'balcony-band', 'balcony-near', 'balcony-phone-back', 'balcony-phone-near'] as const).map((n) => images.picture(n)),
 );
 const [previewWide, previewVertical] = await Promise.all([images.preview('balcony'), images.preview('balcony-phone')]);
+
+// "Петербург знает своих." → «Петербург» / «знает» + «своих.» in gold.
+const [first, ...rest] = t.headline.split(' ');
+const accent = rest.pop();
 
 const frame = catalog['balcony-far'];
 const c = crops.heroWide;
@@ -45,10 +51,33 @@ const vars = {
     </div>
   </Fragment>
   <slot name="accent" slot="accent" />
-  <div data-part="credit"><Credit text={t.credit} as="h1" /></div>
-  <p class="t-display headline" data-part="headline">{t.headline}</p>
+  <div class="credit" data-part="credit"><Credit text={t.credit} as="h1" /></div>
+  <p class="t-display headline" data-part="headline">
+    <span class="line">{first}</span>{' '}<span class="line">{rest.join(' ')} <span class="accent">{accent}</span></span>
+  </p>
   <p class="t-lead lead" data-part="lead">{t.lead}</p>
   <div class="action" data-part="action"><TelegramButton /></div>
+  <Fragment slot="chrome">
+    <nav class="nav" data-part="nav" aria-label={t.menuName}>
+      <ul>
+        {
+          t.menu.map((m) => (
+            <li>
+              <a class="t-nav" href={`#${m.scene}`}>
+                {m.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <span class="nav__line" aria-hidden="true"></span>
+    </nav>
+    <div class="cue" data-part="cue" aria-hidden="true">
+      <span class="cue__line"></span>
+      <span class="cue__ring"></span>
+      <span class="t-label cue__label">{t.cue}</span>
+    </div>
+  </Fragment>
 </Scene>
 
 <style>
@@ -95,6 +124,24 @@ const vars = {
       display: none;
     }
   }
+
+  .line {
+    display: block;
+  }
+  /* The gold word: champagne to gold, top to bottom, as on the customer's frame. Plain gold
+     where text cannot be clipped to a gradient. */
+  .accent {
+    color: var(--gold-bright);
+  }
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+    .accent {
+      background: linear-gradient(to bottom, var(--champagne) 20%, var(--gold-bright) 110%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+  }
   .headline,
   .lead {
     margin-top: var(--space-lg);
@@ -106,5 +153,90 @@ const vars = {
     .action {
       display: none;
     }
+  }
+
+  /* Menu and scroll hint: wide scheme only, not on a phone lying down. */
+  .nav,
+  .cue {
+    display: none;
+  }
+  @media (orientation: landscape) and (min-height: 501px) {
+    /* The name stands at the top left, level with the menu; the rest stays centred. */
+    .credit {
+      position: absolute;
+      top: var(--header-top);
+      left: var(--gutter);
+    }
+    .nav {
+      position: absolute;
+      z-index: 2;
+      top: calc(var(--header-top) - 12px);
+      right: var(--gutter);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xl);
+    }
+    .nav ul {
+      display: flex;
+      gap: var(--space-xl);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      color: var(--text);
+      text-decoration: none;
+      transition: color var(--dur-hover) linear;
+    }
+    .nav a:hover {
+      color: var(--gold-bright);
+    }
+    .nav__line {
+      width: 44px;
+      height: 1px;
+      background: var(--gold);
+    }
+    .cue {
+      position: absolute;
+      display: none;
+      z-index: 2;
+      left: calc(var(--gutter) + 2px);
+      bottom: var(--space-2xl);
+      flex-direction: column;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    @media (min-height: 800px) {
+      .cue {
+        display: flex;
+      }
+    }
+    .cue__line {
+      width: 1px;
+      height: 48px;
+      margin-left: 10px;
+      background: var(--gold-deep);
+    }
+    .cue__ring {
+      width: 21px;
+      height: 21px;
+      border: 1px solid var(--text-muted);
+      border-radius: 50%;
+    }
+    .cue__label {
+      margin-top: var(--space-md);
+      color: var(--text-muted);
+    }
+  }
+  /* The headline's two lines may run wider than the text column, up to the face. */
+  :global(.scene--hero) {
+    --header-top: clamp(var(--space-lg), 6.5svh, var(--space-2xl));
+    --text-column: 48rem;
+  }
+  .lead {
+    max-width: 34rem;
   }
 </style>

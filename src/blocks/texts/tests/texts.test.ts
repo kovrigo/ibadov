@@ -9,6 +9,10 @@ const brief = {
   heroCredit: 'Сергей Ибадов',
   heroHeadline: 'Петербург знает своих.',
   heroLead: 'Риелтор в Санкт-Петербурге.',
+  // Added 8 October 2026 with the customer's frame: the menu and the scroll hint.
+  menu: ['Услуги', 'Партнёры', 'Контакты'],
+  menuName: 'Разделы',
+  cue: 'Пролистайте',
   button: 'Написать в Telegram',
   servicesTitle: 'У каждого решения свой адрес.',
   services: ['Купить', 'Продать'],
@@ -67,7 +71,10 @@ const everything = [
 
 describe('texts are verbatim from the Brief', () => {
   test('hero', () => {
-    expectValue(texts.chapter('hero')).toEqual({ credit: brief.heroCredit, headline: brief.heroHeadline, lead: brief.heroLead });
+    const { menu, ...hero } = texts.chapter('hero');
+    expectValue(hero).toEqual({ credit: brief.heroCredit, headline: brief.heroHeadline, lead: brief.heroLead, menuName: brief.menuName, cue: brief.cue });
+    expectValue(menu.map((m) => m.label)).toEqual(brief.menu);
+    expectValue(menu.map((m) => m.scene)).toEqual(['services', 'partners', 'final']);
   });
   test('services', () => {
     expectValue(texts.chapter('services').title).toBe(brief.servicesTitle);
@@ -111,7 +118,7 @@ describe('texts are verbatim from the Brief', () => {
 
 describe('no other words', () => {
   const briefStrings = new Set(allStrings(brief));
-  const allowedExtra = new Set(['@ibadow', 'https://t.me/ibadow', 'https://instagram.com/ibadow']);
+  const allowedExtra = new Set(['@ibadow', 'https://t.me/ibadow', 'https://instagram.com/ibadow', 'services', 'partners', 'final']);
   test('every visible string comes from the Brief', () => {
     const descriptions = new Set(descriptionNames.map((d) => texts.description(d)));
     for (const s of everything) {

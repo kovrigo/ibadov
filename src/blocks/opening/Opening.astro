@@ -1,41 +1,31 @@
 ---
 // The intro overlay. It fills the hero's accent place: over the hero image, under the hero text,
 // so the Telegram button stays visible and pressable from the first frame. Hidden from screen
-// readers; hidden altogether unless the head script chose the intro. The aerial frame is placed
-// as in the final scene and pushes in on the dome centre.
-import { aerialPictures } from './pictures';
-import { catalog, crops, geometry } from '../images';
-
-const { wide, tall, wideSizes, tallSizes } = await aerialPictures();
-const frame = catalog.aerial;
-const v = catalog['aerial-vertical'];
-const cv = crops.finalVertical;
-const n = (x: number) => Number(x.toFixed(5)).toString();
-const pct = (x: number, total: number) => `${n((100 * x) / total)}%`;
-const vars = {
-  '--wide-w': geometry.coverWidthCss(frame),
-  '--wide-h': `max(100cqh, ${n((100 * frame.height) / frame.width)}cqw)`,
-  '--wide-ax': n(crops.finalWide.anchor.x),
-  '--wide-ay': n(crops.finalWide.anchor.y),
-  '--wide-origin': `${pct(frame.marks.domeCentre.x, frame.width)} ${pct(frame.marks.domeCentre.y, frame.height)}`,
-  '--tall-width': geometry.excludeWidthCss(v, cv.centreX, cv.keepOutX),
-  '--tall-ratio': n(v.height / v.width),
-  '--tall-anchor-y': n(cv.anchorY),
-  '--tall-origin': `${pct(v.marks.domeCentre.x, v.width)} ${pct(v.marks.domeCentre.y, v.height)}`,
-};
-const style = Object.entries(vars)
-  .map(([k, x]) => `${k}: ${x}`)
-  .join('; ');
+// readers; hidden altogether unless the head script chose the intro. It holds the intro video
+// (no sound, never looped, no controls). Nothing downloads unless the head chose the intro: then
+// the inline script below starts the file for the screen shape (vertical in portrait).
+import wide from './assets/intro-wide.mp4?url';
+import vertical from './assets/intro-vertical.mp4?url';
 ---
 
-<div class="opening" data-opening aria-hidden="true" style={style}>
-  <picture>
-    <source media="(orientation: portrait)" type="image/avif" srcset={tall.avif} sizes={tallSizes} />
-    <source media="(orientation: portrait)" type="image/webp" srcset={tall.webp} sizes={tallSizes} />
-    <source type="image/avif" srcset={wide.avif} sizes={wideSizes} />
-    <source type="image/webp" srcset={wide.webp} sizes={wideSizes} />
-    <img class="opening__aerial" data-opening-aerial src={wide.src} width={wide.width} height={wide.height} alt="" loading="lazy" decoding="async" />
-  </picture>
+<div class="opening" data-opening aria-hidden="true">
+  <video
+    class="opening__video"
+    data-opening-video
+    data-wide={wide}
+    data-vertical={vertical}
+    muted
+    playsinline
+    preload="none"
+    disablepictureinpicture
+    disableremoteplayback></video>
+  <script is:inline>
+    (function (v) {
+      if (!v || !document.documentElement.classList.contains('intro-wait')) return;
+      v.preload = 'auto';
+      v.src = matchMedia('(orientation: portrait)').matches ? v.dataset.vertical : v.dataset.wide;
+    })(document.querySelector('[data-opening-video]'));
+  </script>
 </div>
 
 <style is:global>
@@ -45,13 +35,16 @@ const style = Object.entries(vars)
     display: none;
     overflow: hidden;
     background: var(--ink);
-    container-type: size;
     pointer-events: none;
   }
-  .opening__aerial {
+  .opening__video {
     position: absolute;
+    inset: 0;
     display: block;
-    max-width: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 50%;
     opacity: 0;
   }
   @media (orientation: landscape) {
@@ -60,26 +53,10 @@ const style = Object.entries(vars)
       bottom: auto;
       height: 100svh;
     }
-    .opening__aerial {
-      width: var(--wide-w);
-      height: var(--wide-h);
-      left: calc(var(--wide-ax) * (100cqw - var(--wide-w)));
-      top: calc(var(--wide-ay) * (100cqh - var(--wide-h)));
-      transform-origin: var(--wide-origin);
-    }
   }
-  @media (orientation: portrait) {
-    .opening__aerial {
-      width: var(--tall-width);
-      height: calc(var(--tall-width) * var(--tall-ratio));
-      left: calc(50% - var(--tall-width) / 2);
-      top: calc(var(--tall-anchor-y) * (100cqh - var(--tall-width) * var(--tall-ratio)));
-      transform-origin: var(--tall-origin);
-    }
-  }
-  /* intro-wait (head script): the hero image waits under ink and the credit, headline and lead
-     wait at opacity 0; the button and the phone bar stay. If no script takes over, CSS alone
-     shows the first screen at 2.5 s. intro-on: the motion script drives the overlay.
+  /* intro-wait (head script): the hero image waits under ink and the credit, headline, lead, nav
+     and cue wait at opacity 0; the button and the phone bar stay. If no script takes over, CSS
+     alone shows the first screen at 2.5 s. intro-on: the motion script drives the overlay.
      intro-fade: no intro, the headline fades in over 480ms. Reduced motion: none of this. */
   @media (prefers-reduced-motion: no-preference) {
     html.intro-wait .opening,
@@ -89,7 +66,7 @@ const style = Object.entries(vars)
     html.intro-wait .opening {
       animation: opening-out var(--dur-title) var(--ease-exit) 2.5s both;
     }
-    html.intro-wait [data-scene='hero'] :is([data-part='credit'], [data-part='headline'], [data-part='lead']) {
+    html.intro-wait [data-scene='hero'] :is([data-part='credit'], [data-part='headline'], [data-part='lead'], [data-part='nav'], [data-part='cue']) {
       animation: opening-in var(--dur-title) var(--ease-enter) 2.5s both;
     }
     /* Its own keyframes: swapping intro-wait for intro-fade then starts a new 480ms fade

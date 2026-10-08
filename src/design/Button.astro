@@ -1,5 +1,6 @@
 ---
-// Button (button-primary): solid gold, dark label text, a 1px line arrow. A plain link.
+// Button (button-primary): a 1px gold frame on the dark, light label text, a 1px line arrow,
+// as on the customer's frame. Hover fills it with gold. A plain link.
 interface Props {
   href: string;
   label: string;
@@ -11,8 +12,8 @@ const { href, label, block = false } = Astro.props;
 
 <a class:list={['button', 't-label', { 'button--block': block }]} href={href}>
   <span>{label}</span>
-  <svg class="arrow" aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 14 14">
-    <path d="M1.5 12.5 12.5 1.5M4.5 1.5h8v8" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></path>
+  <svg class="arrow" aria-hidden="true" focusable="false" width="26" height="10" viewBox="0 0 26 10">
+    <path d="M0 5h25M20 .5 25 5l-5 4.5" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></path>
   </svg>
 </a>
 
@@ -21,28 +22,49 @@ const { href, label, block = false } = Astro.props;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-md);
+    gap: var(--space-xl);
     height: var(--button-height);
     padding: var(--button-padding);
-    background: var(--gold);
-    color: var(--on-gold);
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--text);
     text-decoration: none;
     white-space: nowrap;
     border-radius: var(--radius);
-    transition: background-color var(--dur-hover) linear;
+    transition:
+      background-color var(--dur-hover) linear,
+      color var(--dur-hover) linear;
+  }
+  .button .arrow {
+    color: var(--gold);
+    transition: color var(--dur-hover) linear;
   }
   .button:hover {
-    background: var(--gold-bright);
+    background: var(--gold);
+    color: var(--on-gold);
+  }
+  .button:hover .arrow {
+    color: var(--on-gold);
   }
   .button:active {
-    background: var(--gold);
     transform: translateY(1px);
   }
   .button--block {
     display: flex;
     width: 100%;
+    height: var(--button-height-block);
+    justify-content: space-between;
+    padding-inline: var(--space-lg);
   }
   .arrow {
     flex: none;
+  }
+  /* Screens narrower than 1.55:1 leave the text column less room before the face: a tighter frame. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
+    .button:not(.button--block) {
+      gap: var(--space-md);
+      padding: var(--button-padding-compact);
+      letter-spacing: 0.2em;
+    }
   }
 </style>

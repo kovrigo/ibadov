@@ -79,13 +79,19 @@ describe('inline head script', () => {
     expect([...classes]).toEqual([]);
   });
 
-  test('preloads the intro images only when the intro may play', () => {
-    const preloads: Preload[] = [['(orientation: landscape)', '/a.avif 640w, /b.avif 1280w', '100vw']];
+  test('preloads the hero images, and only they, only when the intro may play', () => {
+    const preloads: Preload[] = [
+      ['(orientation: landscape)', '/far.avif 640w, /far-2.avif 1280w', '100vw'],
+      ['(orientation: portrait)', '/phone-back.avif 640w', '100vw'],
+    ];
     const yes = runInline(base, preloads);
     expect(yes.links).toEqual([
-      { rel: 'preload', as: 'image', type: 'image/avif', media: '(orientation: landscape)', imagesrcset: '/a.avif 640w, /b.avif 1280w', imagesizes: '100vw', fetchpriority: 'high' },
+      { rel: 'preload', as: 'image', type: 'image/avif', media: '(orientation: landscape)', imagesrcset: '/far.avif 640w, /far-2.avif 1280w', imagesizes: '100vw', fetchpriority: 'high' },
+      { rel: 'preload', as: 'image', type: 'image/avif', media: '(orientation: portrait)', imagesrcset: '/phone-back.avif 640w', imagesizes: '100vw', fetchpriority: 'high' },
     ]);
     expect(runInline({ ...base, readSeen: () => '1' }, preloads).links).toEqual([]);
+    // The video is not the head's: Opening.astro starts it.
+    expect(gateScript(preloads)).not.toMatch(/video|mp4/);
   });
 
   test('stays tiny: the logic without its data is under 1 KB', () => {
