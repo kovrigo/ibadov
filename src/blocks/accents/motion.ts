@@ -112,20 +112,22 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     });
   });
 
-  const measure = (g: Glint) => {
+  /** An element's place in its scene (the hero's phone frame may stand off the scene's edge). */
+  const offset = (g: Glint, el: El | null) => {
     let x = 0;
     let y = 0;
-    let e: El | null = g.layer;
-    while (e && e !== g.section) {
+    for (let e = el; e && e !== g.section; e = e.offsetParent as El | null) {
       x += e.offsetLeft;
       y += e.offsetTop;
-      e = e.offsetParent as El | null;
     }
-    g.ox = x;
-    g.oy = y;
+    return [x, y] as const;
+  };
+  const measure = (g: Glint) => {
+    [g.ox, g.oy] = offset(g, g.layer);
     g.ow = g.layer?.offsetWidth ?? 0;
-    g.cx = g.box.offsetLeft + g.box.offsetWidth / 2;
-    g.cy = g.box.offsetTop + g.box.offsetHeight / 2;
+    const [bx, by] = offset(g, g.box);
+    g.cx = bx + g.box.offsetWidth / 2;
+    g.cy = by + g.box.offsetHeight / 2;
   };
   /**
    * The box over the watch takes the same scale and shift the camera gives the watch's layer:

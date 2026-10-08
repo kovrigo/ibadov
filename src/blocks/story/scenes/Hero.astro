@@ -24,10 +24,15 @@ const accent = rest.pop();
 const lead = t.lead.split(/(?<=\.) /).map((line) => line.split(/((?<!\S)(?:\S )?\S+-\S+)/));
 
 const frame = catalog['balcony-far'];
+const phone = catalog['balcony-phone-near'];
 const c = crops.heroWide;
 const pct = (a: { x: number; y: number }) => `${a.x * 100}% ${a.y * 100}%`;
 const clear = (anchorX: number) =>
   `calc(${geometry.coverXCss(frame, frame.marks.face.x0, anchorX)} - ${textToFace.listed}px - var(--gutter))`;
+// Vertical: where the face ends, as a share of the phone picture's width. The picture narrows
+// until the face ends 40px above the text (--text-height, set below per scheme), never under
+// half the screen; the text never starts higher than that.
+const faceEnd = (phone.marks.face!.y1 / phone.width).toFixed(4);
 // Rendered width of the wide frame: 100vw when the screen is wider than the frame, else 177.68vh.
 const wideSizes = `(min-aspect-ratio: ${frame.width}/${frame.height}) 100vw, ${((100 * frame.width) / frame.height).toFixed(2)}vh`;
 const vars = {
@@ -37,6 +42,10 @@ const vars = {
   'anchor-narrow': pct(c.narrowAnchor),
   'preview-wide': `url(${previewWide})`,
   'preview-vertical': `url(${previewVertical})`,
+  'phone-width': `clamp(50cqw, (100svh - var(--text-height) - ${textToFace.listed}px) / ${faceEnd}, 100cqw)`,
+  'face-end': `calc(var(--phone-width) * ${faceEnd} + ${textToFace.listed}px)`,
+  // Wide, one screen tall: where the face ends, 40px added.
+  'face-end-wide': `calc(${(frame.marks.face!.y1 / frame.height).toFixed(4)} * 100svh + ${textToFace.listed}px)`,
 };
 ---
 
@@ -115,12 +124,19 @@ const vars = {
       object-position: var(--anchor-narrow);
     }
   }
-  /* Vertical: the phone windows at full width, pinned to the top, ink below. */
+  /* Vertical: the phone windows pinned to the top, ink below. Full width, unless the window is
+     too short for its width (nearly square, or a short phone): then narrower, centred, its sides
+     melting into ink. */
   .preview--vertical,
   .stack--vertical {
+    --side-fade: min(var(--image-fade), 100cqw - 100%);
     bottom: auto;
+    width: var(--phone-width);
     height: auto;
+    margin-inline: auto;
     aspect-ratio: 557 / 941;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--side-fade), #000 calc(100% - var(--side-fade)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--side-fade), #000 calc(100% - var(--side-fade)), transparent);
   }
   .preview--vertical {
     background-image: var(--preview-vertical);
@@ -252,6 +268,28 @@ const vars = {
       color: var(--text-muted);
     }
   }
+  /* Narrower than 1.55:1 the face moves right, and in a low window the hair reaches the menu. There
+     the menu gets its scrim too: ink 0.85 from the screen's top and right edges to past the menu,
+     then a soft fall to nothing, 120px to the left, 64px down. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) and (min-width: 768px) and (min-height: 501px) {
+    .nav::before {
+      --fall-x: transparent, rgb(0 0 0 / 0.25) calc(0.3 * var(--image-fade)), rgb(0 0 0 / 0.75) calc(0.7 * var(--image-fade)), #000 var(--image-fade);
+      --fall-y: #000 calc(100% - var(--space-2xl)), rgb(0 0 0 / 0.75) calc(100% - 0.7 * var(--space-2xl)), rgb(0 0 0 / 0.25) calc(100% - 0.3 * var(--space-2xl)), transparent;
+      content: '';
+      position: absolute;
+      z-index: -1;
+      top: calc(12px - var(--header-top));
+      right: calc(-1 * var(--gutter));
+      bottom: calc(-1 * var(--space-2xl));
+      left: calc(-1 * var(--image-fade));
+      pointer-events: none;
+      background: rgb(var(--ink-rgb) / 0.85);
+      -webkit-mask-image: linear-gradient(to right, var(--fall-x)), linear-gradient(to bottom, var(--fall-y));
+      mask-image: linear-gradient(to right, var(--fall-x)), linear-gradient(to bottom, var(--fall-y));
+      -webkit-mask-composite: source-in;
+      mask-composite: intersect;
+    }
+  }
   /* The headline's two lines may run wider than the text column, up to the face. */
   :global(.scene--hero) {
     --header-top: clamp(var(--space-lg), 6.5svh, var(--space-2xl));
@@ -261,10 +299,81 @@ const vars = {
     max-width: 34rem;
   }
   /* Screens narrower than 1.55:1 leave the column less room before the face: a tighter lead keeps
-     «Риелтор в Санкт-Петербурге.» on one line. */
+     «Риелтор в Санкт-Петербурге.» on one line. The nearer to square, the less room: the headline
+     shrinks with it, so its longer line «знает своих.» (5.3em, 5.5 with a margin) ends 40px short
+     of the face. Never below 1.5rem, still 1.4 times the lead or more. */
   @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
     .lead {
       letter-spacing: 0.08em;
+    }
+    .headline {
+      --fit: clamp(1.5rem, var(--limit-narrow) / 5.5, var(--title-size));
+      font-size: var(--fit);
+    }
+  }
+  /* With the name pinned top left, the smaller headline keeps its two lines' height, standing low
+     in it: the lead below does not rise to the face. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) and (min-width: 768px) and (min-height: 501px) {
+    .headline {
+      margin-top: calc(var(--space-lg) + 2 * var(--title-lh) * (var(--title-size) - var(--fit)));
+    }
+  }
+  /* Vertical: the text's height from the name's top to the screen's bottom, for --phone-width.
+     The lead takes two lines, three on a phone (the city wraps), four under 335px; from 768px
+     the button follows it. Should the text still run taller, it starts 40px below the face all
+     the same: the first screen then scrolls a little. */
+  @media (orientation: portrait) {
+    :global(.scene--hero) {
+      --lead-lines: 3;
+      --below-lead: max(var(--space-xl), var(--floating-reserve));
+      --text-height: calc(
+        var(--credit-lh) * var(--credit-size) + var(--space-sm) + 1px + 2 * var(--space-lg) +
+          2 * var(--display-lh) * var(--display-size) + var(--lead-lines) * var(--lead-lh) * var(--lead-size) + var(--below-lead)
+      );
+    }
+    :global(.scene--hero .scene__column) {
+      margin-top: calc(var(--face-end) - var(--space-lg));
+    }
+  }
+  @media (orientation: portrait) and (max-width: 334px) {
+    :global(.scene--hero) {
+      --lead-lines: 4;
+    }
+  }
+  @media (orientation: portrait) and (min-width: 768px) {
+    :global(.scene--hero) {
+      --lead-lines: 2;
+      --below-lead: calc(2 * var(--space-xl) + var(--button-height));
+    }
+  }
+  /* A short window lifts the lead to the chin, and the button keeps the column wider than the room
+     before the face: there the lead wraps in that room. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) and (max-height: 640px) and (min-width: 768px) {
+    .lead {
+      max-width: min(34rem, var(--limit-narrow));
+    }
+  }
+  /* Browser zoom of 200% and more on a window nearly as wide as tall (4:3 or narrower, lower than
+     501px): beside the face there is no room even for one word. The text stands under the face,
+     across the screen, its scrim rising over 24px; the first screen scrolls. */
+  @media (orientation: landscape) and (max-aspect-ratio: 4/3) and (max-height: 500px) {
+    :global(.scene--hero .scene__column) {
+      flex: 1;
+      justify-content: flex-start;
+      width: auto;
+      max-width: none;
+      margin-top: calc(var(--face-end-wide) - var(--space-md));
+      padding-right: var(--gutter);
+    }
+    :global(.scene--hero .scene__column::before) {
+      inset: calc(-1 * var(--space-lg)) 0 0;
+      background: linear-gradient(to bottom, transparent, var(--scrim) var(--space-lg));
+    }
+    .headline {
+      font-size: var(--title-size);
+    }
+    .lead {
+      max-width: 34rem;
     }
   }
 </style>
