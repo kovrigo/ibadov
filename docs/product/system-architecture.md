@@ -2,12 +2,12 @@
 title: System architecture
 quadrant: explanation
 created: 2026-10-08
-status: draft
+status: agreed
 read_when: Before adding, moving or changing a block, a scene, a motion or the page address.
 summary: Blocks of the landing page in four levels: texts and images, static page, motion, opening.
 ---
 <!-- tab: System Architecture -->
-> **Статус: черновик.** Форма согласована 8 октября 2026: четыре уровня, без сервера и базы данных, Astro без React. Код ещё не написан.
+> **Статус: согласовано 8 октября 2026.** Четыре уровня, без сервера и базы данных, Astro без React. Код ещё не написан.
 
 # Лендинг Сергея Ибадова: архитектура
 
