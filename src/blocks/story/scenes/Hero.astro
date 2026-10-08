@@ -141,8 +141,12 @@ const vars = {
   .line {
     display: block;
   }
-  .whole {
-    white-space: nowrap;
+  /* Whole wherever the column holds it: not in a landscape window under 500px wide (browser zoom
+     250–300%), where it would reach the face. */
+  @media (orientation: portrait), (min-width: 500px) {
+    .whole {
+      white-space: nowrap;
+    }
   }
   /* The gold word: champagne to gold, top to bottom, as on the customer's frame. Plain gold
      where text cannot be clipped to a gradient. */
