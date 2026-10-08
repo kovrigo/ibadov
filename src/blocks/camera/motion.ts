@@ -331,18 +331,17 @@ export function startCamera(): void {
     onScroll(() => {
       const y = scrollY;
       const vh = innerHeight;
-      const heroP = hero ? m.heroProgress(y, hero.height) : 0;
+      const p = hero ? m.heroProgress(y, hero.height) : 0;
       for (const v of views.values()) {
         const top = v.top - y;
         const seam = seamOn && (v === hero || v === services);
         if (!seam && !nearScreen(top, v.height, vh)) continue;
         let o = m.cutOpacity(top, v.height, vh);
-        if (seam && v === hero) o = m.seamHero(heroP);
-        if (seam && v === services) o = Math.min(m.seamDesk(heroP), m.cutOut(top, v.height));
+        if (seam && v === hero) o = m.seamHero(p);
+        if (seam && v === services) o = Math.min(m.seamDesk(p), m.cutOut(top, v.height));
         set(v.media, 'opacity', m.num(o));
       }
       if (hero) {
-        const p = m.heroProgress(y, hero.height);
         if (nearScreen(hero.top - y, hero.height, vh)) {
           for (const st of heroStacks) {
             if (!st.shown) continue;

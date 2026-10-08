@@ -3,7 +3,7 @@
 // and before the hero text in reading order. Hidden altogether unless the head script chose the
 // intro. It holds the customer's film (no sound, never looped, no controls; hidden from screen
 // readers) and the button «Пропустить», named «Пропустить фильм» for screen readers and voice
-// control. Nothing downloads unless the head chose the intro: then the inline script below starts
+// control; it stays hidden until the motion script listens for it. Nothing downloads unless the head chose the intro: then the inline script below starts
 // the file.
 // The film plays clear: the hero column's scrim is off and the first screen's text, menu and
 // button wait (the film's own title runs where the button stands); they come back as the film
@@ -25,7 +25,7 @@ const t = texts.chapter('hero');
     preload="none"
     disablepictureinpicture
     disableremoteplayback></video>
-  <button type="button" class="opening__skip t-label" data-opening-skip tabindex="-1" aria-label={t.skipName}>
+  <button type="button" class="opening__skip t-label" data-opening-skip tabindex="-1" aria-label={t.skipName} hidden>
     <span class="opening__skip-line"></span>{t.skip}
   </button>
   <script is:inline>
@@ -95,7 +95,6 @@ const t = texts.chapter('hero');
     background: none;
     appearance: none;
     color: var(--text);
-    text-shadow: 0 0 12px rgb(var(--ink-rgb) / 0.9);
     pointer-events: auto;
     cursor: pointer;
     transition: color var(--dur-hover) linear;
@@ -116,6 +115,9 @@ const t = texts.chapter('hero');
       rgb(var(--ink-rgb) / 0)
     );
   }
+  .opening__skip[hidden] {
+    display: none;
+  }
   .opening__skip:hover {
     color: var(--gold-bright);
   }
@@ -130,18 +132,18 @@ const t = texts.chapter('hero');
   }
   @media (orientation: portrait), (max-width: 767px), (max-height: 500px) {
     .opening__skip {
-      top: var(--space-md);
+      top: max(var(--space-md), env(safe-area-inset-top, 0px));
       bottom: auto;
     }
   }
   /* intro-wait (head script): the hero image waits under ink and the credit, headline, lead,
      button, nav and cue wait at opacity 0, the button and the menu not pressable; the phone bar
-     stays. If no script takes over, CSS alone shows the first screen at 2.5 s. intro-on: the
-     motion script drives the overlay and those parts; the hero's scrim is off, the button and the
-     menu still not pressable (a tap anywhere skips). intro-reveal: the film dissolves, the scrim
+     stays. If no script takes over, CSS alone shows the first screen at 2.5 s, and «Пропустить»
+     never shows: nothing would hear it. intro-on: the motion script drives the overlay and those
+     parts; the hero's scrim is off, the button and the menu still not pressable (a tap anywhere
+     skips) until intro-live, when they are half in. intro-reveal: the film dissolves, the scrim
      comes back over 900ms (240ms on a skip, intro-skip). intro-fade: no intro, the headline fades
-     in over 480ms. Reduced motion: none of this. The CSS reveal ends with the overlay hidden, so
-     no unseen «Пропустить» stays pressable or heard. */
+     in over 480ms. Reduced motion: none of this. */
   @media (prefers-reduced-motion: no-preference) {
     html.intro-wait .opening,
     html.intro-on .opening {
@@ -156,7 +158,7 @@ const t = texts.chapter('hero');
     html.intro-wait [data-scene='hero'] :is([data-part='action'], [data-part='nav']) {
       animation: opening-in-live var(--dur-title) var(--ease-enter) 2.5s both;
     }
-    html.intro-on:not(.intro-reveal) [data-scene='hero'] :is([data-part='action'], [data-part='nav']) {
+    html.intro-on:not(.intro-live) [data-scene='hero'] :is([data-part='action'], [data-part='nav']) {
       pointer-events: none;
     }
     html.intro-on:not(.intro-reveal) [data-scene='hero'] .scene__column::before,
@@ -210,7 +212,6 @@ const t = texts.chapter('hero');
     }
     to {
       opacity: 0;
-      visibility: hidden;
     }
   }
 </style>

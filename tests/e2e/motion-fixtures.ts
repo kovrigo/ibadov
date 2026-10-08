@@ -3,7 +3,7 @@ import type { BrowserContext, Page } from '@playwright/test';
 
 /**
  * Records, in the page, every class change on <html> with its time since navigation start
- * (window.__classLog) and the first time the intro is playing (window.__introStart).
+ * (window.__classLog).
  */
 export async function recordClasses(target: BrowserContext | Page): Promise<void> {
   await target.addInitScript(() => {

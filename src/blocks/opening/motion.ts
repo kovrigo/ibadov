@@ -3,11 +3,13 @@
 // the video. Here: wait up to 1.5 s from navigation start for the video to play; playing and still
 // at the top → the film 0–7.0 s, dissolving into the first screen by 7.8 s; otherwise the first
 // screen at once with the headline fading in, and the video download stops. A tap anywhere (on
-// «Пропустить» too), the wheel, a scroll or any key → the ready first screen in 240ms. «Пропустить»
-// is a button out of the Tab order: a screen reader or voice control presses it with a click, and
-// then (or when the intro ends with focus on it) focus goes to the name, the hero's h1. The film
-// plays clear: the first screen's button waits with its text (a phone keeps its Telegram bar,
-// a plain link never intercepted). Nothing is remembered: the next opening plays it again.
+// «Пропустить» too, counted as the finger lifts), the wheel, a scroll or any key → the ready first
+// screen in 240ms; Space does not also scroll the page past it. «Пропустить» shows once this script
+// listens; it is a button out of the Tab order: a screen reader or voice control presses it with a
+// click, and then (or when the intro ends with focus on it) focus goes to the name, the hero's h1,
+// unless the visitor has moved focus on. The film plays clear: the first screen's button and menu
+// wait with its text and take clicks once half in (a phone keeps its Telegram bar, a plain link
+// never intercepted). Nothing is remembered: the next opening plays it again.
 // Reduced motion (or switched on mid-intro): the ready first screen. Returns a promise that
 // resolves when the first screen is ready.
 import { story } from '../story';
@@ -26,7 +28,7 @@ const speeds: Record<string, number> = {
   'phone-back': motion.layerSpeed.band,
   'phone-near': motion.layerSpeed.near,
 };
-const INPUTS = ['pointerdown', 'wheel', 'touchmove', 'keydown', 'scroll'] as const;
+const INPUTS = ['pointerup', 'wheel', 'touchmove', 'keydown', 'scroll'] as const;
 
 export function startOpening(): Promise<void> {
   const cls = document.documentElement.classList;
@@ -79,11 +81,16 @@ export function startOpening(): Promise<void> {
     setStyle(el, prop, value);
   };
   let cancel: (() => void) | undefined;
-  // «Пропустить» was pressed: a touch or a mouse starts the skip at pointerdown, before its click.
+  // «Пропустить» was pressed: a touch or a mouse starts the skip at pointerup, before its click.
   let pressed = false;
-  /** Focus to the name if «Пропустить» was pressed or holds focus; it is about to disappear. */
+  /**
+   * Focus to the name if «Пропустить» holds focus, or was pressed and focus is nowhere else; it is
+   * about to disappear.
+   */
   const focusName = () => {
-    if (!pressed && !(overlay && overlay.contains(document.activeElement))) return;
+    const active = document.activeElement;
+    const onSkip = !!overlay && overlay.contains(active);
+    if (!onSkip && !(pressed && (!active || active === document.body))) return;
     const name = credit?.querySelector<El>('h1');
     if (!name) return;
     name.tabIndex = -1;
@@ -137,7 +144,7 @@ export function startOpening(): Promise<void> {
     for (const t of INPUTS) removeEventListener(t, onInput, true);
     release();
     focusName();
-    cls.remove('intro-on', 'intro-wait', 'intro-reveal', 'intro-skip');
+    cls.remove('intro-on', 'intro-wait', 'intro-reveal', 'intro-skip', 'intro-live');
     for (const el of touched) clearStyle(el);
     touched.clear();
     resolveReady();
@@ -171,8 +178,10 @@ export function startOpening(): Promise<void> {
   function onInput(e: Event) {
     const target = e.target as Element | null;
     // The Telegram button (any link) works as a normal link during the intro.
-    if (e.type === 'pointerdown' && target?.closest?.('a[href]')) return;
-    if (e.type === 'pointerdown' && target?.closest?.('[data-opening-skip]')) pressed = true;
+    if (e.type === 'pointerup' && target?.closest?.('a[href]')) return;
+    if (e.type === 'pointerup' && target?.closest?.('[data-opening-skip]')) pressed = true;
+    // Space opens the first screen like any key, without also scrolling a screen past it.
+    if (e.type === 'keydown' && (e as KeyboardEvent).key === ' ') e.preventDefault();
     skip();
   }
   // A screen reader or voice control sends a click alone, without a pointer or a key.
@@ -189,8 +198,11 @@ export function startOpening(): Promise<void> {
     cancel = onFrame((t) => {
       if (state !== 'play') return false;
       const k = t - start;
+      const f = introFrame(Math.min(k, intro.end));
       if (k >= intro.dissolve[0]) cls.add('intro-reveal');
-      draw(introFrame(Math.min(k, intro.end)));
+      // The button and the menu take clicks once half in; until then a click skips.
+      if (f.headline >= 0.5) cls.add('intro-live');
+      draw(f);
       if (k < intro.end) return;
       finish();
       return false;
@@ -233,8 +245,10 @@ export function startOpening(): Promise<void> {
     return ready;
   }
 
-  for (const t of INPUTS) addEventListener(t, onInput, { capture: true, passive: true });
+  for (const t of INPUTS) addEventListener(t, onInput, { capture: true, passive: t !== 'keydown' });
   skipButton?.addEventListener('click', onSkipPress);
+  // Now something hears «Пропустить»: show it (Opening.astro keeps it hidden until then).
+  if (skipButton) skipButton.hidden = false;
   // Turning the screen mid-intro shows the other image group: the ready first screen instead.
   matchMedia('(orientation: portrait)').addEventListener('change', skip);
   onMotionSettingChange((reduced) => {

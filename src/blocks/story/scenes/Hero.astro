@@ -235,6 +235,13 @@ const vars = {
       color: var(--text-muted);
     }
   }
+  /* A window narrower than 768px is the phone scheme even lying down: the phone bar, no menu, and
+     «Пропустить» in the top right corner. */
+  @media (max-width: 767px) {
+    .nav {
+      display: none;
+    }
+  }
   /* The headline's two lines may run wider than the text column, up to the face. */
   :global(.scene--hero) {
     --header-top: clamp(var(--space-lg), 6.5svh, var(--space-2xl));

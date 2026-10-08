@@ -128,6 +128,49 @@ test('a key press gives the ready first screen within 240ms', async ({ browser }
   await ctx.close();
 });
 
+test('Space during the film gives the first screen without scrolling the page past it', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  await filmPast(page, 1);
+  await page.keyboard.press('Space');
+  await htmlLacks(page, 'intro-on', 1000);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await ctx.close();
+});
+
+test('as the film dissolves, the button and the menu take clicks only once half in', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  // Every frame: the links' pointer-events when the dissolve starts and when they turn live.
+  const seen = await page.evaluate(
+    () =>
+      new Promise<{ reveal: string[]; live: string[]; opacity: number }>((resolve) => {
+        const links = [...document.querySelectorAll('[data-scene="hero"] :is([data-part="action"], [data-part="nav"]) a')];
+        const events = () => links.map((a) => getComputedStyle(a).pointerEvents);
+        let reveal: string[] = [];
+        const tick = () => {
+          const c = document.documentElement.classList;
+          if (!reveal.length && c.contains('intro-reveal')) reveal = events();
+          if (c.contains('intro-live')) {
+            const action = document.querySelector('[data-scene="hero"] [data-part="action"]')!;
+            resolve({ reveal, live: events(), opacity: Number(getComputedStyle(action).opacity) });
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }),
+  );
+  expect(seen.reveal.length).toBeGreaterThan(1);
+  expect(new Set(seen.reveal)).toEqual(new Set(['none']));
+  expect(new Set(seen.live)).toEqual(new Set(['auto']));
+  expect(seen.opacity).toBeGreaterThanOrEqual(0.5);
+  await ctx.close();
+});
+
 test('during the intro: the phone bar opens Telegram; on a computer a click gives the first screen, then the button', async ({ browser }) => {
   {
     const { ctx, page } = await firstVisit(browser, PHONE, { isMobile: true, hasTouch: true });
@@ -158,6 +201,8 @@ test('«Пропустить» gives the ready first screen within 240ms', async
   for (const [viewport, extra] of [
     [DESKTOP, {}],
     [PHONE, { isMobile: true, hasTouch: true }],
+    // A narrow window lying down: the phone scheme, «Пропустить» top right.
+    [{ width: 700, height: 600 }, {}],
   ] as const) {
     const { ctx, page } = await firstVisit(browser, viewport, extra);
     await page.goto('/');
@@ -170,8 +215,15 @@ test('«Пропустить» gives the ready first screen within 240ms', async
     expect(box.height).toBeGreaterThanOrEqual(44);
     const hit = await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('[data-opening-skip]'), [box.x + box.width / 2, box.y + box.height / 2]);
     expect(hit).toBe(true);
+    // Clear of the menu too, which comes in as the film dissolves.
+    const nav = page.locator('[data-scene="hero"] [data-part="nav"]');
+    if (await nav.isVisible()) {
+      const n = (await nav.boundingBox())!;
+      const apart = n.x + n.width <= box.x || box.x + box.width <= n.x || n.y + n.height <= box.y || box.y + box.height <= n.y;
+      expect(apart, `${viewport.width}×${viewport.height}`).toBe(true);
+    }
     await page.evaluate(() => {
-      addEventListener('pointerdown', () => ((window as unknown as { __tap: number }).__tap = performance.now()), { once: true, capture: true });
+      addEventListener('pointerup', () => ((window as unknown as { __tap: number }).__tap = performance.now()), { once: true, capture: true });
     });
     if (extra.hasTouch) await skip.tap();
     else await skip.click();
@@ -183,6 +235,26 @@ test('«Пропустить» gives the ready first screen within 240ms', async
     await expect(page.locator(NAME)).toBeFocused();
     await ctx.close();
   }
+});
+
+test('«Пропустить» acts as the button or finger lifts; focus moved on before the first screen stays', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await page.goto('/');
+  await htmlHas(page, 'intro-on', 3000);
+  await filmPast(page, 1);
+  const box = (await page.locator('[data-opening-skip]').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(400);
+  // Pressed, not released: still the film, so a press can still be taken back.
+  const held = await page.evaluate(() => document.documentElement.className);
+  expect(held).toMatch(/\bintro-on\b/);
+  expect(held).not.toMatch(/\bintro-skip\b/);
+  await page.mouse.up();
+  await page.keyboard.press('Tab');
+  await htmlLacks(page, 'intro-on', 1000);
+  await expect(telegramIn(page, 'scene')).toBeFocused();
+  await ctx.close();
 });
 
 test('a reload and a new visit play the film again; Back from Telegram does not', async ({ browser }) => {
@@ -308,6 +380,9 @@ test('motion script blocked: the first screen shows itself at 2.5 s', async ({ b
   expect(await effectiveOpacity(page, HEADLINE)).toBe(0);
   const pressable = () => page.$eval('[data-telegram="scene"] a', (a) => getComputedStyle(a).pointerEvents);
   expect(await pressable()).toBe('none');
+  // No script to hear «Пропустить»: it is not there to see, press or hear either.
+  await expect(page.locator('[data-opening-skip]')).toBeHidden();
+  await expect(page.getByRole('button', SKIP)).toHaveCount(0);
   // CSS alone: 2.5 s, then 480ms of fade.
   await page.waitForFunction(() => performance.now() > 3700, null, { timeout: 10_000, polling: 100 });
   for (const part of ['credit', 'headline', 'lead', 'action', 'nav', 'cue']) {
@@ -594,6 +669,17 @@ test('the browser refuses to play the film: the first screen at once, the Telegr
     await page.waitForURL(TELEGRAM.url, { timeout: 3000 });
     await ctx.close();
   }
+});
+
+test('the film file fails to load: the first screen at once', async ({ browser }) => {
+  const { ctx, page } = await firstVisit(browser);
+  await ctx.route(VIDEO_FILE, (route) => route.abort());
+  await page.goto('/');
+  await htmlHas(page, 'intro-fade', 2500);
+  // At once: well before the 1.5 s the page would wait for an answer.
+  expect(await firstWith(page, 'intro-fade')).toBeLessThan(1500);
+  expect(await firstWith(page, 'intro-on')).toBeUndefined();
+  await ctx.close();
 });
 
 test('scrolling during the film ends it and scrolls the page on', async ({ browser }) => {
