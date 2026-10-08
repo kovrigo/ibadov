@@ -8,7 +8,7 @@
   background: var(--ink);
   isolation: isolate;
   container-type: inline-size;
-  /* The scrim runs 32px past a full-width text column: on a very narrow landscape screen
+  /* The scrim runs up to 120px past a full-width text column: on a very narrow landscape screen
      (568×320, or a zoomed-in desktop) it must not make the page scroll sideways. */
   overflow-x: clip;
 }
@@ -80,7 +80,9 @@
 }
 
 /* Wide scheme: text column on the left, as wide as its content, on a scrim from the screen's
-   left edge to 32px past the column. --limit keeps it clear of a face or the dome. */
+   left edge to the column's edge. Past it the scrim fades out over the room left before the face
+   or the dome (to 8px short of them), 32px to 120px: a short fade reads as a panel's edge.
+   --limit keeps the text clear of a face or the dome. */
 @media (orientation: landscape) {
   .scene__column {
     justify-content: center;
@@ -92,8 +94,18 @@
     padding: var(--space-3xl) 0 max(var(--space-2xl), var(--floating-reserve)) var(--gutter);
   }
   .scene__column::before {
-    inset: 0 calc(-1 * var(--scrim-fade)) 0 0;
-    background: linear-gradient(to right, var(--scrim) calc(100% - var(--scrim-fade)), transparent);
+    inset: 0;
+    background: var(--scrim);
+  }
+  .scene__column::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset-block: 0;
+    left: 100%;
+    width: clamp(var(--scrim-fade), var(--gutter) + var(--limit, 100vw) + var(--scrim-fade) - 100%, var(--image-fade));
+    background: linear-gradient(to right, var(--scrim), transparent);
+    pointer-events: none;
   }
 }
 /* --limit is worked out for a picture one screen tall (cqh is the small viewport height in the
@@ -119,6 +131,9 @@
 @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
   .scene__column {
     max-width: min(var(--text-column), var(--limit-narrow, var(--limit, var(--text-column))));
+  }
+  .scene__column::after {
+    width: clamp(var(--scrim-fade), var(--gutter) + var(--limit-narrow, var(--limit, 100vw)) + var(--scrim-fade) - 100%, var(--image-fade));
   }
 }
 @media (orientation: landscape) and (max-height: 500px) {
