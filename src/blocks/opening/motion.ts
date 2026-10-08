@@ -15,7 +15,7 @@
 import { story } from '../story';
 import { onMotionSettingChange, prefersReducedMotion } from '../../platform/motion-setting';
 import { clearStyle, ease, now, onFrame, setStyle, tween, type MotionProp } from '../../platform/motion-loop';
-import { motion } from '../../design/tokens';
+import { motion, spacing } from '../../design/tokens';
 import { intro, introFrame, layerZoom, pullScale, readyFrame, scaleAbout, type IntroFrame } from './timeline';
 
 type El = HTMLElement;
@@ -101,8 +101,11 @@ export function startOpening(): Promise<void> {
   let anchor: [number, number] = [0.5, 0.1];
   let box = { w: 0, h: 0 };
   // Portrait: the film box is its whole frame, centred; `cover` scales it up to fill the screen.
+  // As it pulls back it also rises by `lift`, so its title (rows 440–560 of 720, glow included)
+  // ends `lg` above the name: the name fades in under the title, not over it.
   const portrait = matchMedia('(orientation: portrait)').matches;
   let cover = 1;
+  let lift = 0;
   const measure = () => {
     const first = layers[0];
     if (!first) return;
@@ -113,6 +116,9 @@ export function startOpening(): Promise<void> {
     }
     if (portrait && overlay && video && video.offsetWidth && video.offsetHeight) {
       cover = Math.max(overlay.offsetWidth / video.offsetWidth, overlay.offsetHeight / video.offsetHeight, 1);
+      const name = credit?.getBoundingClientRect();
+      const titleEnd = overlay.getBoundingClientRect().top + video.offsetTop + (video.offsetHeight * 560) / 720;
+      if (name?.height) lift = Math.max(0, titleEnd - (name.top - Number.parseFloat(spacing.lg)));
     }
   };
 
@@ -123,7 +129,9 @@ export function startOpening(): Promise<void> {
     current = f;
     set(overlay, 'opacity', String(f.overlay));
     set(video, 'opacity', String(f.video));
-    if (portrait) set(video, 'transform', `scale(${Math.round(pullScale(cover, f.pull) * 1e5) / 1e5})`);
+    if (portrait) {
+      set(video, 'transform', `translateY(${-Math.round(lift * f.pull * 100) / 100}px) scale(${Math.round(pullScale(cover, f.pull) * 1e5) / 1e5})`);
+    }
     set(credit, 'opacity', String(f.credit));
     for (const el of titles) set(el, 'opacity', String(f.headline));
     for (const l of layers) set(l.picture, 'transform', scaleAbout(layerZoom(l.speed, f.settle), anchor[0], anchor[1], box.w, box.h));

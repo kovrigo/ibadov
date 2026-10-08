@@ -317,6 +317,32 @@ test('portrait: the film fills the screen, then pulls back to its whole width, t
   await ctx.close();
 });
 
+test('portrait: the film title stands 24px or more above the name, which fades in under it', async ({ browser }) => {
+  // Phones where the centred film put its title on the name, a tall phone where it never did, a tablet.
+  for (const viewport of [
+    { width: 360, height: 780 },
+    { width: 375, height: 812 },
+    { width: 360, height: 640 },
+    { width: 412, height: 915 },
+    { width: 768, height: 1024 },
+  ]) {
+    const screen = `${viewport.width}×${viewport.height}`;
+    const { ctx, page } = await firstVisit(browser, viewport, { isMobile: viewport.width < 768, hasTouch: true });
+    await page.goto('/');
+    await htmlHas(page, 'intro-on', 3000);
+    await filmPast(page, 4.8);
+    const r = await page.evaluate((sel) => {
+      const v = document.querySelector(sel)!.getBoundingClientRect();
+      const name = document.querySelector('[data-scene="hero"] [data-part="credit"]')!.getBoundingClientRect();
+      return { titleEnd: v.top + (v.height * 560) / 720, name: name.top, top: v.top };
+    }, VIDEO);
+    expect(r.name - r.titleEnd, `${screen}: film title end ${r.titleEnd.toFixed(1)} to the name ${r.name.toFixed(1)}, px`).toBeGreaterThanOrEqual(24 - 1);
+    // Still the whole frame on screen: it rises no higher than the top of the screen.
+    expect(r.top, screen).toBeGreaterThanOrEqual(0);
+    await ctx.close();
+  }
+});
+
 test('2G: no intro, the first screen at once', async ({ browser }) => {
   const { ctx, page } = await firstVisit(browser);
   const cdp = await ctx.newCDPSession(page);
