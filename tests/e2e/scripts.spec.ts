@@ -51,3 +51,40 @@ for (const { name, viewport, ...device } of SIZES) {
     });
   });
 }
+
+test.describe('scripts on, screen changes', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+  });
+
+  test('turning the screen before the freeze frame plays leaves both gold lines drawn', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await open(page);
+    // Wide: the camera has hidden the freeze caption and its "reach" line. Turn upright, play it there, turn back.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => document.querySelector('[data-scene="freeze"]')!.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior }));
+    await page.waitForTimeout(2500);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(300);
+    const lines = await page.$$eval('[data-scene="freeze"] [data-line]', (els) =>
+      els.filter((e) => e.getClientRects().length > 0).map((e) => ({ line: e.getAttribute('data-line'), transform: getComputedStyle(e).transform })),
+    );
+    expect(lines.length).toBeGreaterThan(0);
+    for (const l of lines) expect(l).toEqual({ line: l.line, transform: 'none' });
+  });
+
+  test('a very tall screen: at the end of the page the final text is shown', async ({ page }) => {
+    await page.setViewportSize({ width: 1080, height: 4500 });
+    await open(page);
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' as ScrollBehavior }));
+    for (const text of SCENE_TEXTS.final) {
+      await expect
+        .poll(async () => (await page.evaluate(inPageProbeText, { scene: 'final', text, scroll: false })).opacity, {
+          message: `final «${text}»: effective opacity at the end of the page`,
+          timeout: 5000,
+        })
+        .toBe(1);
+    }
+  });
+});

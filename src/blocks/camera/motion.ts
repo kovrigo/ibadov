@@ -187,7 +187,6 @@ export function startCamera(): void {
   const undrawn = (el: El | null | undefined) => {
     if (el) set(el, 'transform', m.scaleFromLeft(0, el.offsetWidth));
   };
-  const shown = (el: El | null | undefined): el is El => !!el && el.getClientRects().length > 0;
 
   // Services and final: the text group lifts and fades in.
   for (const name of ['services', 'final'] as const) {
@@ -228,7 +227,9 @@ export function startCamera(): void {
     const muted = q(freeze.scene.layers['close-muted']);
     const flash = q(`${freeze.scene.accent} [data-flash]`);
     const text = q(freeze.scene.text);
-    const lines = () => [text?.querySelector<El>('[data-line="reach"]'), text?.querySelector<El>('[data-line="name"]')].filter(shown);
+    // Both lines, shown or not: "reach" shows only on a wide screen and "name" only upright, and a
+    // turn of the screen between hide and play must not leave one collapsed.
+    const lines = () => [text?.querySelector<El>('[data-line="reach"]'), text?.querySelector<El>('[data-line="name"]')].filter((l): l is El => !!l);
     shareCue(
       freeze,
       0.6,
@@ -350,6 +351,9 @@ export function startCamera(): void {
         freezeScale = m.passScale(m.passProgress(top, freeze.height, vh, docHeight - freeze.top));
         set(freezeStack, 'transform', `scale(${m.num(freezeScale)})`);
       }
+      // At the end of the page every waiting cue plays: on a very tall screen the last text may
+      // never pass 85% of it.
+      const atEnd = y + vh >= docHeight - 1;
       for (const c of cues) {
         if (c.state === 'done') continue;
         const top = c.top - y;
@@ -363,7 +367,7 @@ export function startCamera(): void {
           c.hide();
           c.state = 'waiting';
         }
-        if (c.due(top, bottom, vh)) {
+        if (atEnd || c.due(top, bottom, vh)) {
           c.state = 'done';
           c.play();
         }

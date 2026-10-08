@@ -27,6 +27,8 @@ interface Glint {
   band: El;
   section: El;
   layer: El | null;
+  /** The image group of the layer: the glint waits while it is loading (Landing.astro). */
+  stack: El | null;
   hero: boolean;
   inView: boolean;
   armed: boolean;
@@ -89,11 +91,13 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
       const band = frame.querySelector<El>('[data-glint-band]');
       const layerSel = scene.layers[frame.dataset.glintLayer ?? ''];
       if (!box || !band) return [];
+      const layer = layerSel ? document.querySelector<El>(layerSel) : null;
       return [{
         box,
         band,
         section,
-        layer: layerSel ? document.querySelector<El>(layerSel) : null,
+        layer,
+        stack: layer?.closest<El>('[data-stack]') ?? null,
         hero: scene.name === 'hero',
         inView: false,
         armed: true,
@@ -138,7 +142,9 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     set(g.box, 'transform', `translate(${px(tx)}, ${px(ty)}) scale(${num(k)})`);
   };
   const glintPlaying = () => glints.some((g) => g.playing);
-  const pending = (g: Glint) => g.inView && g.armed && !g.playing;
+  // Not over a picture that is still loading: it would be used up on ink. A group whose image
+  // failed stays loading, and its glint simply never plays.
+  const pending = (g: Glint) => g.inView && g.armed && !g.playing && !g.stack?.hasAttribute('data-loading');
   const glintWaiting = () => glints.some(pending);
 
   const play = (g: Glint) => {
@@ -167,6 +173,11 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     });
     keep(stop);
   };
+
+  // A picture that finishes loading may let its glint play.
+  const loaded = new MutationObserver(() => wake());
+  for (const stack of new Set(glints.map((g) => g.stack))) if (stack) loaded.observe(stack, { attributeFilter: ['data-loading'] });
+  keep(() => loaded.disconnect());
 
   for (const g of glints) {
     const box = g.box;
@@ -298,8 +309,6 @@ export function startAccents({ heroReady = Promise.resolve() }: AccentsOptions =
     for (const g of glints) {
       if (!pending(g)) continue;
       if (g.hero && t < heroReadyAt + a.glint.heroDelay) continue;
-      // Not over a picture that is still loading (Landing.astro's loading state): it would be used up on ink.
-      if (g.layer?.closest('[data-stack]')?.hasAttribute('data-loading')) continue;
       if (!a.glintAllowed(t, g.last)) continue;
       if (onPhone && (smokeShowing || glintPlaying())) continue;
       play(g);
