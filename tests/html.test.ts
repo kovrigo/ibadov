@@ -49,11 +49,14 @@ describe('built page', () => {
     for (const s of sections) expect({ scene: s.name, h2: count(s.html, /<h2[\s>]/g) }).toEqual({ scene: s.name, h2: s.name === 'hero' ? 0 : 1 });
   });
 
-  test('links: only Telegram and Instagram, and both present', () => {
+  test('links: Telegram and Instagram outside, the menu to scenes on the page', () => {
     const hrefs = [...body.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)].map((m) => decode(m[1]!));
     expect(hrefs).toContain('https://t.me/ibadow');
     expect(hrefs).toContain('https://instagram.com/ibadow');
-    for (const h of hrefs) expect(['https://t.me/ibadow', 'https://instagram.com/ibadow']).toContain(h);
+    const menu = texts.chapter('hero').menu.map((m) => `#${m.scene}`);
+    expect(hrefs.filter((h) => h.startsWith('#'))).toEqual(menu);
+    for (const h of menu) expect(body).toContain(`id="${h.slice(1)}"`);
+    for (const h of hrefs) expect(['https://t.me/ibadow', 'https://instagram.com/ibadow', ...menu]).toContain(h);
   });
 
   test('the Meta footnote', () => {
@@ -94,6 +97,13 @@ describe('built page', () => {
     };
     for (const c of ['hero', 'services', 'freeze', 'numbers', 'partners', 'final'] as const) add(texts.chapter(c));
     add(texts.contacts());
+    // The hero sets its headline in two lines with the last word in gold: one element per word;
+    // and its lead one sentence per line, a hyphenated word kept whole with its preposition.
+    for (const w of texts.chapter('hero').headline.split(' ')) allowed.add(w);
+    for (const line of texts.chapter('hero').lead.split(/(?<=\.) /)) {
+      allowed.add(line);
+      for (const piece of line.split(/((?<!\S)(?:\S )?\S+-\S+)/)) if (piece.trim()) allowed.add(piece.trim());
+    }
     const visible = body
       .replace(/<script[\s\S]*?<\/script>/g, '')
       .replace(/<style[\s\S]*?<\/style>/g, '')
@@ -105,6 +115,10 @@ describe('built page', () => {
     const alts = [...body.matchAll(/\balt="([^"]*)"/g)].map((m) => decode(m[1]!)).filter(Boolean);
     const descriptions = new Set((['hero', 'services', 'freeze', 'numbers', 'partners', 'final'] as const).map((d) => texts.description(d)));
     for (const a of alts) expect({ alt: a, allowed: descriptions.has(a) }).toEqual({ alt: a, allowed: true });
+    // What a screen reader says instead of the visible words («Разделы», «Пропустить фильм»).
+    const labels = [...body.matchAll(/\baria-label="([^"]*)"/g)].map((m) => decode(m[1]!));
+    expect(labels.length).toBeGreaterThan(0);
+    for (const l of labels) expect({ label: l, allowed: allowed.has(l) }).toEqual({ label: l, allowed: true });
   });
 
   test('one image description per scene and scheme', () => {

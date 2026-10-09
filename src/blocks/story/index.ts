@@ -12,8 +12,8 @@
 //            screen shape (portrait = vertical). Other scenes have one stack, "main".
 // - layers:  each <img data-layer="…">. Hero: far, band, near (wide) and phone-back,
 //            phone-near (vertical). Freeze: close and close-muted (muted on top; the static
-//            page shows it, the camera may start from close). Services, numbers: plate.
-//            Partners, final: photo. The hero's wide layers are cropped with object-position
+//            page shows it, the camera may start from close). Numbers: plate.
+//            Services, partners, final: photo. The hero's wide layers are cropped with object-position
 //            62% 10% (85% 10% when the screen is narrower than 1.55:1); scale around that.
 //            Each img sits in its own <picture>, a box as large as its group: the picture and the
 //            img can be moved by two different scripts (the opening scales the picture, the
@@ -24,7 +24,8 @@
 // - accent:  the empty accent place ([data-accent]): an overlay over the image for every
 //            scene except the final, where it sits in the text column above the title.
 // - parts:   named pieces of the text ([data-part]). Hero: credit (the h1 and its gold-line),
-//            headline, lead, action (the Telegram button's place).
+//            headline, lead, action (the Telegram button's place), nav (the menu) and cue (the
+//            scroll hint); nav and cue sit on the scene, outside [data-text], wide scheme only.
 // Without scripts every scene is in its final state; scripts set their own start states.
 
 export type SceneName = 'hero' | 'services' | 'freeze' | 'numbers' | 'partners' | 'final';
@@ -44,7 +45,7 @@ const order: SceneName[] = ['hero', 'services', 'freeze', 'numbers', 'partners',
 
 const layerNames: Record<SceneName, string[]> = {
   hero: ['far', 'band', 'near', 'phone-back', 'phone-near'],
-  services: ['plate'],
+  services: ['photo'],
   freeze: ['close', 'close-muted'],
   numbers: ['plate'],
   partners: ['photo'],
@@ -61,7 +62,7 @@ const stackNames: Record<SceneName, string[]> = {
 };
 
 const partNames: Partial<Record<SceneName, string[]>> = {
-  hero: ['credit', 'headline', 'lead', 'action'],
+  hero: ['credit', 'headline', 'lead', 'action', 'nav', 'cue'],
 };
 
 function scene(name: SceneName): Scene {

@@ -183,8 +183,11 @@ const ash = 'M201 24l1.2 3.4M205 30l-1 4M209 22.6l1 3M212 33l1.4 3.6M215 26l.6 4
     }
   }
   @media (orientation: portrait) {
+    /* The hero's phone picture may be narrower than the screen, centred (Hero.astro). */
     .glint-frame--vertical {
       display: block;
+      width: var(--phone-width, auto);
+      margin-inline: auto;
     }
   }
   .glint {

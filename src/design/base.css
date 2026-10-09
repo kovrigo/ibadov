@@ -85,10 +85,12 @@ img {
 .t-numeral,
 .t-credit {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-weight: var(--display-weight);
+  font-stretch: var(--serif-stretch);
 }
 .t-lead,
 .t-body,
+.t-nav,
 .t-label,
 .t-footnote {
   font-family: var(--font-sans);
@@ -112,6 +114,9 @@ img {
   white-space: nowrap;
 }
 .t-credit {
+  /* Spaced capitals keep the serif's full width, as the name on the customer's frame. */
+  font-stretch: 100%;
+  font-weight: var(--credit-weight);
   font-size: var(--credit-size);
   line-height: var(--credit-lh);
   letter-spacing: var(--credit-ls);
@@ -128,6 +133,12 @@ img {
   font-size: var(--body-size);
   line-height: var(--body-lh);
   letter-spacing: var(--body-ls);
+}
+.t-nav {
+  font-weight: var(--nav-weight);
+  font-size: var(--nav-size);
+  line-height: var(--nav-lh);
+  letter-spacing: var(--nav-ls);
 }
 .t-label {
   font-weight: var(--label-weight);

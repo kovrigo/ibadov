@@ -23,8 +23,8 @@ export const INSTAGRAM = {
 
 /** Brief «Тексты», word for word, per scene. Buttons and the hidden «Цифры» heading are checked apart. */
 export const SCENE_TEXTS: Record<SceneName, string[]> = {
-  hero: ['Сергей Ибадов', 'Петербург знает своих.', 'Риелтор в Санкт-Петербурге.'],
-  services: ['У каждого решения свой адрес.', 'Купить', 'Продать'],
+  hero: ['Сергей Ибадов', 'Петербург знает своих.', 'Риелтор в Санкт-Петербурге. Покупка и продажа недвижимости.'],
+  services: ['Вариантов два.', 'Купить', 'Продать'],
   freeze: ['Сергей Ибадов', '№1 риелтор Петербурга'],
   numbers: ['Продажи за 2025 год', 'больше', '1 млрд', 'рублей', 'Больше', '100 тысяч', 'подписчиков в Instagram'],
   partners: ['Партнёрство с застройщиками', 'Yard', 'Elements'],
@@ -324,9 +324,9 @@ export async function open(page: Page): Promise<void> {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.evaluate(async () => {
     await Promise.all([
-      document.fonts.load('400 16px Oranienbaum', 'Сергей Ибадов №1'),
-      document.fonts.load('400 16px Jost', 'Сергей Ибадов'),
-      document.fonts.load('500 16px Jost', 'Написать в Telegram'),
+      document.fonts.load("300 16px 'Noto Serif Display'", 'Сергей Ибадов №1'),
+      document.fonts.load('300 16px Montserrat', 'Сергей Ибадов'),
+      document.fonts.load('400 16px Montserrat', 'Написать в Telegram'),
     ]);
     await document.fonts.ready;
   });
@@ -410,7 +410,7 @@ export const fmt = (b: Box) => `x ${round(b.x0)}–${round(b.x1)}, y ${round(b.y
 
 // ---- Image marks on the screen ----
 
-/** The catalog entry the rendered layer shows. The final scene swaps its picture with the screen's shape. */
+/** The catalog entry the rendered layer shows. Services and final swap their picture with the screen's shape. */
 export function entryFor(scene: string, layer: string, portrait: boolean): ImageName {
   const table: Record<string, Record<string, ImageName>> = {
     hero: {
@@ -420,7 +420,7 @@ export function entryFor(scene: string, layer: string, portrait: boolean): Image
       'phone-back': 'balcony-phone-back',
       'phone-near': 'balcony-phone-near',
     },
-    services: { plate: 'plate-services' },
+    services: { photo: portrait ? 'desk-vertical' : 'desk' },
     freeze: { close: 'close', 'close-muted': 'close-muted' },
     numbers: { plate: 'plate-numbers' },
     partners: { photo: 'stairs' },

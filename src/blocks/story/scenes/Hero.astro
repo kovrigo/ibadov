@@ -1,5 +1,7 @@
 ---
-// Scene 2, first screen: the balcony frame in layers, the credit as the page's only h1.
+// Scene 2, first screen: the balcony frame in layers, composed as the customer's frame. Wide: the
+// name top left, the menu top right, the headline in two lines with its last word in gold, the
+// lead, the button, the scroll hint bottom left. Vertical: name, headline and lead at the bottom.
 import Scene from '../Scene.astro';
 import Layer from '../Layer.astro';
 import Credit from '../../../design/Credit.astro';
@@ -13,11 +15,24 @@ const [far, band, near, back, front] = await Promise.all(
 );
 const [previewWide, previewVertical] = await Promise.all([images.preview('balcony'), images.preview('balcony-phone')]);
 
+// "Петербург знает своих." → «Петербург» / «знает» + «своих.» in gold.
+const [first, ...rest] = t.headline.split(' ');
+const accent = rest.pop();
+// The lead's sentences, one per line: who he is, then what he does. A line that must wrap keeps a
+// hyphenated word whole, with a one-letter preposition before it: «Риелтор / в Санкт-Петербурге.»,
+// never «Санкт- / Петербурге.».
+const lead = t.lead.split(/(?<=\.) /).map((line) => line.split(/((?<!\S)(?:\S )?\S+-\S+)/));
+
 const frame = catalog['balcony-far'];
+const phone = catalog['balcony-phone-near'];
 const c = crops.heroWide;
 const pct = (a: { x: number; y: number }) => `${a.x * 100}% ${a.y * 100}%`;
 const clear = (anchorX: number) =>
   `calc(${geometry.coverXCss(frame, frame.marks.face.x0, anchorX)} - ${textToFace.listed}px - var(--gutter))`;
+// Vertical: where the face ends, as a share of the phone picture's width. The picture narrows
+// until the face ends 40px above the text (--text-height, set below per scheme), never under
+// half the screen; the text never starts higher than that.
+const faceEnd = (phone.marks.face!.y1 / phone.width).toFixed(4);
 // Rendered width of the wide frame: 100vw when the screen is wider than the frame, else 177.68vh.
 const wideSizes = `(min-aspect-ratio: ${frame.width}/${frame.height}) 100vw, ${((100 * frame.width) / frame.height).toFixed(2)}vh`;
 const vars = {
@@ -27,6 +42,10 @@ const vars = {
   'anchor-narrow': pct(c.narrowAnchor),
   'preview-wide': `url(${previewWide})`,
   'preview-vertical': `url(${previewVertical})`,
+  'phone-width': `clamp(50cqw, (100svh - var(--text-height) - ${textToFace.listed}px) / ${faceEnd}, 100cqw)`,
+  'face-end': `calc(var(--phone-width) * ${faceEnd} + ${textToFace.listed}px)`,
+  // Wide, one screen tall: where the face ends, 40px added.
+  'face-end-wide': `calc(${(frame.marks.face!.y1 / frame.height).toFixed(4)} * 100svh + ${textToFace.listed}px)`,
 };
 ---
 
@@ -45,10 +64,42 @@ const vars = {
     </div>
   </Fragment>
   <slot name="accent" slot="accent" />
-  <div data-part="credit"><Credit text={t.credit} as="h1" /></div>
-  <p class="t-display headline" data-part="headline">{t.headline}</p>
-  <p class="t-lead lead" data-part="lead">{t.lead}</p>
+  <div class="credit" data-part="credit"><Credit text={t.credit} as="h1" /></div>
+  <p class="t-display headline" data-part="headline">
+    <span class="line">{first}</span>{' '}<span class="line">{rest.join(' ')} <span class="accent">{accent}</span></span>
+  </p>
+  <p class="t-lead lead" data-part="lead">
+    {
+      lead.map((parts, i) => (
+        <Fragment>
+          {i ? ' ' : ''}
+          <span class="line">{parts.map((p, k) => (k % 2 ? <span class="whole">{p}</span> : p))}</span>
+        </Fragment>
+      ))
+    }
+  </p>
   <div class="action" data-part="action"><TelegramButton /></div>
+  <Fragment slot="chrome">
+    <nav class="nav" data-part="nav" aria-label={t.menuName}>
+      <ul>
+        {
+          t.menu.map((m) => (
+            <li>
+              <a class="t-nav" href={`#${m.scene}`}>
+                {m.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <span class="nav__line" aria-hidden="true"></span>
+    </nav>
+    <div class="cue" data-part="cue" aria-hidden="true">
+      <span class="cue__line"></span>
+      <span class="cue__ring"></span>
+      <span class="t-label cue__label">{t.cue}</span>
+    </div>
+  </Fragment>
 </Scene>
 
 <style>
@@ -73,12 +124,19 @@ const vars = {
       object-position: var(--anchor-narrow);
     }
   }
-  /* Vertical: the phone windows at full width, pinned to the top, ink below. */
+  /* Vertical: the phone windows pinned to the top, ink below. Full width, unless the window is
+     too short for its width (nearly square, or a short phone): then narrower, centred, its sides
+     melting into ink. */
   .preview--vertical,
   .stack--vertical {
+    --side-fade: min(var(--image-fade), 100cqw - 100%);
     bottom: auto;
+    width: var(--phone-width);
     height: auto;
+    margin-inline: auto;
     aspect-ratio: 557 / 941;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--side-fade), #000 calc(100% - var(--side-fade)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--side-fade), #000 calc(100% - var(--side-fade)), transparent);
   }
   .preview--vertical {
     background-image: var(--preview-vertical);
@@ -95,6 +153,31 @@ const vars = {
       display: none;
     }
   }
+
+  .line {
+    display: block;
+  }
+  /* Whole wherever the column holds it: not in a landscape window under 500px wide (browser zoom
+     250–300%), where it would reach the face. */
+  @media (orientation: portrait), (min-width: 500px) {
+    .whole {
+      white-space: nowrap;
+    }
+  }
+  /* The gold word: champagne to gold, top to bottom, as on the customer's frame. Plain gold
+     where text cannot be clipped to a gradient. */
+  .accent {
+    color: var(--gold-bright);
+  }
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+    .accent {
+      background: linear-gradient(to bottom, var(--champagne) 20%, var(--gold-bright) 110%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+  }
   .headline,
   .lead {
     margin-top: var(--space-lg);
@@ -105,6 +188,192 @@ const vars = {
   @media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
     .action {
       display: none;
+    }
+  }
+
+  /* Menu and scroll hint: wide scheme only, not on a phone lying down (lower than 501px, or a
+     window narrower than 768px): there the name stands over the headline. */
+  .nav,
+  .cue {
+    display: none;
+  }
+  @media (orientation: landscape) and (min-width: 768px) and (min-height: 501px) {
+    /* The name stands at the top left, level with the menu; the rest stays centred. */
+    .credit {
+      position: absolute;
+      top: var(--header-top);
+      left: var(--gutter);
+    }
+    .nav {
+      position: absolute;
+      z-index: 2;
+      top: calc(var(--header-top) - 12px);
+      right: var(--gutter);
+      display: flex;
+      align-items: center;
+      gap: var(--space-xl);
+    }
+    .nav ul {
+      display: flex;
+      gap: var(--space-xl);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      color: var(--text);
+      text-decoration: none;
+      transition: color var(--dur-hover) linear;
+    }
+    .nav a:hover {
+      color: var(--gold-bright);
+    }
+    .nav__line {
+      width: 44px;
+      height: 1px;
+      background: var(--gold);
+    }
+    .cue {
+      position: absolute;
+      display: none;
+      z-index: 2;
+      left: calc(var(--gutter) + 2px);
+      bottom: var(--space-2xl);
+      flex-direction: column;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    @media (min-height: 800px) {
+      .cue {
+        display: flex;
+      }
+    }
+    .cue__line {
+      width: 1px;
+      height: 48px;
+      margin-left: 10px;
+      background: var(--gold-deep);
+    }
+    .cue__ring {
+      width: 21px;
+      height: 21px;
+      border: 1px solid var(--text-muted);
+      border-radius: 50%;
+    }
+    .cue__label {
+      margin-top: var(--space-md);
+      color: var(--text-muted);
+    }
+  }
+  /* Narrower than 1.55:1 the face moves right, and in a low window the hair reaches the menu. There
+     the menu gets its scrim too: ink 0.85 from the screen's top and right edges to past the menu,
+     then a soft fall to nothing, 120px to the left, 64px down. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) and (min-width: 768px) and (min-height: 501px) {
+    .nav::before {
+      --fall-x: transparent, rgb(0 0 0 / 0.25) calc(0.3 * var(--image-fade)), rgb(0 0 0 / 0.75) calc(0.7 * var(--image-fade)), #000 var(--image-fade);
+      --fall-y: #000 calc(100% - var(--space-2xl)), rgb(0 0 0 / 0.75) calc(100% - 0.7 * var(--space-2xl)), rgb(0 0 0 / 0.25) calc(100% - 0.3 * var(--space-2xl)), transparent;
+      content: '';
+      position: absolute;
+      z-index: -1;
+      top: calc(12px - var(--header-top));
+      right: calc(-1 * var(--gutter));
+      bottom: calc(-1 * var(--space-2xl));
+      left: calc(-1 * var(--image-fade));
+      pointer-events: none;
+      background: rgb(var(--ink-rgb) / 0.85);
+      -webkit-mask-image: linear-gradient(to right, var(--fall-x)), linear-gradient(to bottom, var(--fall-y));
+      mask-image: linear-gradient(to right, var(--fall-x)), linear-gradient(to bottom, var(--fall-y));
+      -webkit-mask-composite: source-in;
+      mask-composite: intersect;
+    }
+  }
+  /* The headline's two lines may run wider than the text column, up to the face. */
+  :global(.scene--hero) {
+    --header-top: clamp(var(--space-lg), 6.5svh, var(--space-2xl));
+    --text-column: 48rem;
+  }
+  .lead {
+    max-width: 34rem;
+  }
+  /* Screens narrower than 1.55:1 leave the column less room before the face: a tighter lead keeps
+     «Риелтор в Санкт-Петербурге.» on one line. The nearer to square, the less room: the headline
+     shrinks with it, so its longer line «знает своих.» (5.3em, 5.5 with a margin) ends 40px short
+     of the face. Never below 1.5rem, still 1.4 times the lead or more. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) {
+    .lead {
+      letter-spacing: 0.08em;
+    }
+    .headline {
+      --fit: clamp(1.5rem, var(--limit-narrow) / 5.5, var(--title-size));
+      font-size: var(--fit);
+    }
+  }
+  /* With the name pinned top left, the smaller headline keeps its two lines' height, standing low
+     in it: the lead below does not rise to the face. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) and (min-width: 768px) and (min-height: 501px) {
+    .headline {
+      margin-top: calc(var(--space-lg) + 2 * var(--title-lh) * (var(--title-size) - var(--fit)));
+    }
+  }
+  /* Vertical: the text's height from the name's top to the screen's bottom, for --phone-width.
+     The lead takes two lines, three on a phone (the city wraps), four under 335px; from 768px
+     the button follows it. Should the text still run taller, it starts 40px below the face all
+     the same: the first screen then scrolls a little. */
+  @media (orientation: portrait) {
+    :global(.scene--hero) {
+      --lead-lines: 3;
+      --below-lead: max(var(--space-xl), var(--floating-reserve));
+      --text-height: calc(
+        var(--credit-lh) * var(--credit-size) + var(--space-sm) + 1px + 2 * var(--space-lg) +
+          2 * var(--display-lh) * var(--display-size) + var(--lead-lines) * var(--lead-lh) * var(--lead-size) + var(--below-lead)
+      );
+    }
+    :global(.scene--hero .scene__column) {
+      margin-top: calc(var(--face-end) - var(--space-lg));
+    }
+  }
+  @media (orientation: portrait) and (max-width: 334px) {
+    :global(.scene--hero) {
+      --lead-lines: 4;
+    }
+  }
+  @media (orientation: portrait) and (min-width: 768px) {
+    :global(.scene--hero) {
+      --lead-lines: 2;
+      --below-lead: calc(2 * var(--space-xl) + var(--button-height));
+    }
+  }
+  /* A short window lifts the lead to the chin, and the button keeps the column wider than the room
+     before the face: there the lead wraps in that room. */
+  @media (orientation: landscape) and (max-aspect-ratio: 155/100) and (max-height: 640px) and (min-width: 768px) {
+    .lead {
+      max-width: min(34rem, var(--limit-narrow));
+    }
+  }
+  /* Browser zoom of 200% and more on a window nearly as wide as tall (4:3 or narrower, lower than
+     501px): beside the face there is no room even for one word. The text stands under the face,
+     across the screen, its scrim rising over 24px; the first screen scrolls. */
+  @media (orientation: landscape) and (max-aspect-ratio: 4/3) and (max-height: 500px) {
+    :global(.scene--hero .scene__column) {
+      flex: 1;
+      justify-content: flex-start;
+      width: auto;
+      max-width: none;
+      margin-top: calc(var(--face-end-wide) - var(--space-md));
+      padding-right: var(--gutter);
+    }
+    :global(.scene--hero .scene__column::before) {
+      inset: calc(-1 * var(--space-lg)) 0 0;
+      background: linear-gradient(to bottom, transparent, var(--scrim) var(--space-lg));
+    }
+    .headline {
+      font-size: var(--title-size);
+    }
+    .lead {
+      max-width: 34rem;
     }
   }
 </style>

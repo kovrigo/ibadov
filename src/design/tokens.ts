@@ -9,12 +9,15 @@ export const colors = {
   'on-gold': '#0B0908',
   'gold-bright': '#E8BD5B',
   'gold-deep': '#8B672F',
+  champagne: '#F6E2B6',
   amber: '#C08354',
   smoke: '#CFC6B8',
 } as const;
 
-const serif = "Oranienbaum, 'Oranienbaum Fallback', 'Times New Roman', serif";
-const sans = "Jost, 'Jost Fallback', 'Century Gothic', Arial, sans-serif";
+const serif = "'Noto Serif Display', 'Noto Serif Display Fallback', 'Times New Roman', serif";
+const sans = "Montserrat, 'Montserrat Fallback', Arial, sans-serif";
+/** Width of the serif (its wdth axis): the light, narrowed antiqua of the customer's frame. */
+const serifStretch = '80%';
 
 export interface TypeRole {
   fontFamily: string;
@@ -27,13 +30,14 @@ export interface TypeRole {
 }
 
 export const typography = {
-  display: { fontFamily: serif, fontWeight: 400, fontSize: 'clamp(3rem, 1.6rem + 6.4vw, 7rem)', lineHeight: 0.95, letterSpacing: '-0.01em' },
-  title: { fontFamily: serif, fontWeight: 400, fontSize: 'clamp(2.25rem, 1.4rem + 3.6vw, 4.5rem)', lineHeight: 1.0, letterSpacing: '0em' },
-  numeral: { fontFamily: serif, fontWeight: 400, fontSize: 'clamp(4rem, 2rem + 9vw, 10rem)', lineHeight: 0.9, letterSpacing: '0em', lining: true },
-  credit: { fontFamily: serif, fontWeight: 400, fontSize: 'clamp(1rem, 0.85rem + 0.6vw, 1.375rem)', lineHeight: 1.2, letterSpacing: '0.32em', uppercase: true },
-  lead: { fontFamily: sans, fontWeight: 400, fontSize: 'clamp(1.1875rem, 1.05rem + 0.5vw, 1.375rem)', lineHeight: 1.45, letterSpacing: '0em' },
-  body: { fontFamily: sans, fontWeight: 400, fontSize: '1.125rem', lineHeight: 1.6, letterSpacing: '0.01em' },
-  label: { fontFamily: sans, fontWeight: 500, fontSize: '0.8125rem', lineHeight: 1.2, letterSpacing: '0.24em', uppercase: true },
+  display: { fontFamily: serif, fontWeight: 300, fontSize: 'clamp(2.75rem, 0.5rem + 5.2vw, 6.75rem)', lineHeight: 0.95, letterSpacing: '-0.01em' },
+  title: { fontFamily: serif, fontWeight: 300, fontSize: 'clamp(2rem, 1rem + 3.9vw, 4.5rem)', lineHeight: 1.0, letterSpacing: '0em' },
+  numeral: { fontFamily: serif, fontWeight: 300, fontSize: 'clamp(4rem, 2rem + 9vw, 10rem)', lineHeight: 0.9, letterSpacing: '0em', lining: true },
+  credit: { fontFamily: serif, fontWeight: 400, fontSize: 'clamp(1rem, 0.85rem + 0.6vw, 1.375rem)', lineHeight: 1.2, letterSpacing: '0.36em', uppercase: true },
+  lead: { fontFamily: sans, fontWeight: 300, fontSize: 'clamp(1rem, 0.9rem + 0.3vw, 1.1875rem)', lineHeight: 1.7, letterSpacing: '0.12em' },
+  body: { fontFamily: sans, fontWeight: 300, fontSize: '1.0625rem', lineHeight: 1.6, letterSpacing: '0.02em' },
+  nav: { fontFamily: sans, fontWeight: 300, fontSize: 'clamp(0.875rem, 0.5rem + 0.55vw, 1.125rem)', lineHeight: 1.2, letterSpacing: '0.08em' },
+  label: { fontFamily: sans, fontWeight: 400, fontSize: 'clamp(0.8125rem, 0.6rem + 0.3vw, 1rem)', lineHeight: 1.2, letterSpacing: '0.24em', uppercase: true },
   footnote: { fontFamily: sans, fontWeight: 400, fontSize: '0.8125rem', lineHeight: 1.45, letterSpacing: '0em' },
 } as const satisfies Record<string, TypeRole>;
 
@@ -54,7 +58,7 @@ export const spacing = {
 } as const;
 
 export const components = {
-  button: { height: '56px', padding: '18px 28px' },
+  button: { height: '64px', heightBlock: '56px', padding: '0 36px 0 44px', paddingCompact: '0 20px 0 24px' },
   phoneBar: { padding: '8px 20px', opacity: 0.94 },
   goldLine: { width: '64px', height: '1px' },
 } as const;
@@ -94,7 +98,7 @@ export function tokenCss(): string {
   for (const [name, value] of Object.entries(colors)) {
     vars.push(`--${name}: ${value}`, `--${name}-rgb: ${rgbTriplet(value)}`);
   }
-  vars.push(`--font-serif: ${serif}`, `--font-sans: ${sans}`);
+  vars.push(`--font-serif: ${serif}`, `--font-sans: ${sans}`, `--serif-stretch: ${serifStretch}`);
   for (const [role, t] of Object.entries(typography)) {
     vars.push(
       `--${role}-size: ${t.fontSize}`,
@@ -110,6 +114,8 @@ export function tokenCss(): string {
   vars.push(
     `--radius: ${rounded.none}`,
     `--button-height: ${components.button.height}`,
+    `--button-height-block: ${components.button.heightBlock}`,
+    `--button-padding-compact: ${components.button.paddingCompact}`,
     `--button-padding: ${components.button.padding}`,
     `--phone-bar-padding: ${components.phoneBar.padding}`,
     `--phone-bar-bg: rgb(${rgbTriplet(colors.ink)} / ${components.phoneBar.opacity})`,

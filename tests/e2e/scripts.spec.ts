@@ -1,9 +1,9 @@
-// With scripts and motion on (the intro already seen): every scene's text ends visible once its
+// With scripts and motion on (no intro: the browser saves data): every scene's text ends visible once its
 // cue has played, and image groups whose images fail stay on ink under their texts
 // (Brief «Состояния», plan «Отказы»).
 import { expect, test } from '@playwright/test';
 import { SCENES, SCENE_TEXTS, inPageProbeText, open } from './helpers';
-import { SEEN_KEY } from './motion-fixtures';
+import { noIntro } from './motion-fixtures';
 
 const SIZES = [
   { name: 'desktop', viewport: { width: 1440, height: 900 } },
@@ -14,7 +14,7 @@ for (const { name, viewport, ...device } of SIZES) {
   test.describe(`scripts on, ${name}`, () => {
     test.use({ viewport, ...device });
     test.beforeEach(async ({ context }) => {
-      await context.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+      await noIntro(context);
     });
 
     test('every scene text ends visible after its cue', async ({ page }) => {
@@ -54,7 +54,7 @@ for (const { name, viewport, ...device } of SIZES) {
 
 test.describe('scripts on, screen changes', () => {
   test.beforeEach(async ({ context }) => {
-    await context.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+    await noIntro(context);
   });
 
   test('turning the screen before the freeze frame plays leaves both gold lines drawn', async ({ page }) => {

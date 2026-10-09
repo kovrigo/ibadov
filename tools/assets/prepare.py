@@ -2,7 +2,7 @@
 # requires-python = ">=3.11,<3.13"
 # dependencies = ["numpy<2.3", "pillow", "pymatting==1.1.14"]
 # ///
-"""Builds every image master the page uses, from the four sources and the
+"""Builds every image master the page uses, from the five sources and the
 committed prep files (AI fills, Sergey mattes). Free and local; the page build
 never runs it. See the plan, section «Подготовка изображений».
 
@@ -28,6 +28,7 @@ ASSETS = ROOT / "src/blocks/images/assets"
 SRC, PREP = ASSETS / "source", ASSETS / "prep"
 W, H = 1672, 941
 TILE_W, RIGHT_X0 = 1255, 1672 - 1255
+DESK_VERTICAL_X = 520  # phone window of the desk frame: the watch and the cathedral
 problems: list[str] = []
 
 
@@ -371,6 +372,7 @@ def main() -> None:
     ga = grade(a_clean, "composite")
     gb = grade(b_clean, "composite")
     gp = grade(b_plate, "composite")
+    desk = grade(load(SRC / "desk.png"), "composite")
     close = grade(load(SRC / "close.jpg"), "photo")
     stairs = grade(stairs_fix(load(SRC / "stairs.jpg")), "photo")
 
@@ -389,7 +391,8 @@ def main() -> None:
     save("close", close)
     save("close-muted", hsv_scale(close, 0.4, 0.85))
     save("stairs", stairs)
-    save("plate-services", plate_scene(back, (1150, 560, 1672, 941)))
+    save("desk", desk)
+    save("desk-vertical", desk[:, DESK_VERTICAL_X:DESK_VERTICAL_X + 706])
     save("plate-numbers", plate_scene(ga, (560, 520, 1100, 941)))
     card = Image.fromarray((gb[30:614, 560:1672] * 255 + 0.5).astype(np.uint8)).resize((1200, 630), Image.LANCZOS)
     card.save(ASSETS / "card.webp", lossless=True, method=6, exact=True)
@@ -401,7 +404,7 @@ def main() -> None:
         Image.fromarray((img * 255 + 0.5).astype(np.uint8)).save(dbg / f"{name}.png")
 
     print("checks")
-    for name, img in [("balcony", gb), ("aerial", ga), ("close", close), ("stairs", stairs)]:
+    for name, img in [("balcony", gb), ("aerial", ga), ("desk", desk), ("close", close), ("stairs", stairs)]:
         for ok, what in grade_checks(img):
             need(ok, f"{name}: {what}")
     rest = mix(mix(far, band_rgb, band), near_rgb, near)
@@ -416,7 +419,7 @@ def main() -> None:
     sizes = {"balcony-far": (1672, 941), "balcony-band": (1672, 941), "balcony-near": (1672, 941),
              "balcony-phone-back": (557, 941), "balcony-phone-near": (557, 941), "aerial": (1672, 941),
              "aerial-vertical": (706, 941), "close": (1035, 1280), "close-muted": (1035, 1280),
-             "stairs": (1033, 1280), "plate-services": (522, 381), "plate-numbers": (540, 421), "card": (1200, 630)}
+             "stairs": (1033, 1280), "desk": (1672, 941), "desk-vertical": (706, 941), "plate-numbers": (540, 421), "card": (1200, 630)}
     for name, size in sizes.items():
         need(Image.open(ASSETS / f"{name}.webp").size == size, f"{name} is {size[0]}x{size[1]}")
 

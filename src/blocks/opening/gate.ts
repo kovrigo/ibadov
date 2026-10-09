@@ -1,10 +1,9 @@
-// The opening's decision before the first paint (plan decision 6). shouldPlayIntro() is the
-// logic; gateScript() is the same logic as the tiny inline script in <head>, which also preloads
-// the intro's images when it says yes. tests/gate.test.ts runs both over every branch.
-// What the head cannot know yet (images ready within 1.5 s, the page still at the top) the
+// The opening's decision before the first paint (plan decision 6, changed 8 October 2026: the
+// intro plays on every opening of the page). shouldPlayIntro() is the logic; gateScript() is the
+// same logic as the tiny inline script in <head>, which also preloads the hero images when it
+// says yes. tests/gate.test.ts runs both over every branch.
+// What the head cannot know yet (the video playing within 1.5 s, the page still at the top) the
 // opening's motion script checks before it plays.
-
-export const SEEN_KEY = 'ibadow:intro-seen';
 
 export interface IntroEnv {
   reducedMotion: boolean;
@@ -12,21 +11,20 @@ export interface IntroEnv {
   /** navigator.connection.effectiveType: "slow-2g", "2g", "3g", "4g" or nothing. */
   effectiveType?: string;
   hash: string;
-  /** Reads the seen mark from localStorage; throws when storage is unavailable. */
-  readSeen: () => string | null;
+  /** The navigation entry's type: "navigate", "reload", "back_forward", "prerender" or nothing. */
+  navigation?: string;
 }
 
-/** True when the intro may play: motion allowed, no data saver, not 2G, first visit, no anchor. */
+/**
+ * True when the intro may play: motion allowed, no data saver, not 2G, no anchor, and the page
+ * not reached through Back or Forward (Back from Telegram returns to the ready first screen).
+ * A new visit and a reload both play it: the browser keeps no mark.
+ */
 export function shouldPlayIntro(env: IntroEnv): boolean {
-  if (env.reducedMotion || env.saveData || /2g$/.test(env.effectiveType ?? '') || env.hash) return false;
-  try {
-    return !env.readSeen();
-  } catch {
-    return false;
-  }
+  return !(env.reducedMotion || env.saveData || /2g$/.test(env.effectiveType ?? '') || env.hash || env.navigation === 'back_forward');
 }
 
-/** An AVIF image to preload when the intro may play: [media, srcset, sizes]. */
+/** An AVIF hero image to preload when the intro may play: [media, srcset, sizes]. */
 export type Preload = readonly [media: string, srcset: string, sizes: string];
 
 /**
@@ -37,8 +35,9 @@ export type Preload = readonly [media: string, srcset: string, sizes: string];
 export function gateScript(preloads: readonly Preload[]): string {
   return (
     "(function(w,d){var h=d.documentElement,c=w.navigator.connection||{}," +
-    "m=!w.matchMedia||w.matchMedia('(prefers-reduced-motion: reduce)').matches,p=!1;" +
-    `try{p=!m&&!c.saveData&&!/2g$/.test(c.effectiveType||'')&&!w.location.hash&&!w.localStorage.getItem('${SEEN_KEY}')}catch(e){}` +
+    "m=!w.matchMedia||w.matchMedia('(prefers-reduced-motion: reduce)').matches,p=!1,n='';" +
+    "try{n=w.performance.getEntriesByType('navigation')[0].type}catch(e){}" +
+    "p=!m&&!c.saveData&&!/2g$/.test(c.effectiveType||'')&&!w.location.hash&&n!=='back_forward';" +
     `if(p){h.classList.add('intro-wait');${JSON.stringify(preloads)}.forEach(function(a){` +
     "var l=d.createElement('link');l.rel='preload';l.as='image';l.type='image/avif';l.media=a[0];" +
     "l.setAttribute('imagesrcset',a[1]);l.setAttribute('imagesizes',a[2]);l.setAttribute('fetchpriority','high');" +

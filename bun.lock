@@ -5,8 +5,8 @@
     "": {
       "name": "ibadow-landing",
       "dependencies": {
-        "@fontsource/jost": "^5.3.0",
-        "@fontsource/oranienbaum": "^5.3.0",
+        "@fontsource-variable/noto-serif-display": "^5.3.0",
+        "@fontsource/montserrat": "^5.3.0",
         "astro": "^7.3.7",
         "sharp": "^0.35.5",
       },
@@ -140,9 +140,9 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
 
-    "@fontsource/jost": ["@fontsource/jost@5.3.0", "", {}, "sha512-lORv5y49hSoLVxjGb0qNuBzXvnaNYI3B94200uGPGJFei8fao6d6LLz2ziWbOZubGfZnibzuT6GVNX8fBw8WQQ=="],
+    "@fontsource-variable/noto-serif-display": ["@fontsource-variable/noto-serif-display@5.3.0", "", {}, "sha512-xjCag3o0sBWYB+76irp7cHMIa3MvWqYdGSgFXDePAmezplEJeTbR8FHvf2tSNNqA09KeO9W3N+HDaehQxzg8yg=="],
 
-    "@fontsource/oranienbaum": ["@fontsource/oranienbaum@5.3.0", "", {}, "sha512-AB9D7JTbWUceEExPfGMn4gaJ3a9wb4F60ijNQIB2xPILgSjXlyonCHGqCmjfxRZmuK5yaF0blFmU3sNrIx82Qg=="],
+    "@fontsource/montserrat": ["@fontsource/montserrat@5.3.0", "", {}, "sha512-iQPDtZOnmM5ih4JBGaMSXisRap0ixb9bAUw2hDtY7EjVfaqiiNlKtVuJl9XclxUwtwMMHNcWXfQR6zI9x05+Tg=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

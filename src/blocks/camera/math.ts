@@ -56,9 +56,24 @@ export function cutOpacity(top: number, height: number, viewportHeight: number):
   const edge = cutShare * height;
   if (edge <= 0) return 1;
   const entered = viewportHeight - top;
-  const left = top + height;
-  return Math.min(smooth(clamp01(entered / edge)), smooth(clamp01(left / edge)));
+  return Math.min(smooth(clamp01(entered / edge)), cutOut(top, height));
 }
+
+/** The leaving half of the cut: the image goes to ink over the last 15% of the scene. */
+export function cutOut(top: number, height: number): number {
+  const edge = cutShare * height;
+  return edge <= 0 ? 1 : smooth(clamp01((top + height) / edge));
+}
+
+/**
+ * The seam from the first screen into «Купить / Продать», by the hero's exit progress p: the desk
+ * (held still under the first screen) comes out of ink over p 0–0.4, and the balcony dissolves
+ * away over p 0.3–0.9, so the two pictures cross instead of meeting at an edge.
+ */
+export const seam = { desk: [0, 0.4], hero: [0.3, 0.9] } as const;
+const within = (p: number, [a, b]: readonly [number, number]) => clamp01((p - a) / (b - a));
+export const seamDesk = (p: number) => smooth(within(p, seam.desk));
+export const seamHero = (p: number) => 1 - smooth(within(p, seam.hero));
 
 /** Share of a scene on screen, against the smaller of its height and the screen's. */
 export function visibleShare(top: number, height: number, viewportHeight: number): number {

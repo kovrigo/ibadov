@@ -1,86 +1,149 @@
 ---
 // The intro overlay. It fills the hero's accent place: over the hero image, under the hero text,
-// so the Telegram button stays visible and pressable from the first frame. Hidden from screen
-// readers; hidden altogether unless the head script chose the intro. The aerial frame is placed
-// as in the final scene and pushes in on the dome centre.
-import { aerialPictures } from './pictures';
-import { catalog, crops, geometry } from '../images';
+// and before the hero text in reading order. Hidden altogether unless the head script chose the
+// intro. It holds the customer's film (no sound, never looped, no controls; hidden from screen
+// readers) and the button «Пропустить», named «Пропустить фильм» for screen readers and voice
+// control; it stays hidden until the motion script listens for it. Nothing downloads unless the head chose the intro: then the inline script below starts
+// the file.
+// The film plays clear: the hero column's scrim is off and the first screen's text, menu and
+// button wait (the film's own title runs where the button stands); they come back as the film
+// dissolves into the first screen. On a phone the Telegram bar stays from the first frame.
+import film from './assets/intro-cut.mp4?url';
+import { texts } from '../texts';
 
-const { wide, tall, wideSizes, tallSizes } = await aerialPictures();
-const frame = catalog.aerial;
-const v = catalog['aerial-vertical'];
-const cv = crops.finalVertical;
-const n = (x: number) => Number(x.toFixed(5)).toString();
-const pct = (x: number, total: number) => `${n((100 * x) / total)}%`;
-const vars = {
-  '--wide-w': geometry.coverWidthCss(frame),
-  '--wide-h': `max(100cqh, ${n((100 * frame.height) / frame.width)}cqw)`,
-  '--wide-ax': n(crops.finalWide.anchor.x),
-  '--wide-ay': n(crops.finalWide.anchor.y),
-  '--wide-origin': `${pct(frame.marks.domeCentre.x, frame.width)} ${pct(frame.marks.domeCentre.y, frame.height)}`,
-  '--tall-width': geometry.excludeWidthCss(v, cv.centreX, cv.keepOutX),
-  '--tall-ratio': n(v.height / v.width),
-  '--tall-anchor-y': n(cv.anchorY),
-  '--tall-origin': `${pct(v.marks.domeCentre.x, v.width)} ${pct(v.marks.domeCentre.y, v.height)}`,
-};
-const style = Object.entries(vars)
-  .map(([k, x]) => `${k}: ${x}`)
-  .join('; ');
+const t = texts.chapter('hero');
 ---
 
-<div class="opening" data-opening aria-hidden="true" style={style}>
-  <picture>
-    <source media="(orientation: portrait)" type="image/avif" srcset={tall.avif} sizes={tallSizes} />
-    <source media="(orientation: portrait)" type="image/webp" srcset={tall.webp} sizes={tallSizes} />
-    <source type="image/avif" srcset={wide.avif} sizes={wideSizes} />
-    <source type="image/webp" srcset={wide.webp} sizes={wideSizes} />
-    <img class="opening__aerial" data-opening-aerial src={wide.src} width={wide.width} height={wide.height} alt="" loading="lazy" decoding="async" />
-  </picture>
+<div class="opening" data-opening>
+  <video
+    class="opening__video"
+    data-opening-video
+    aria-hidden="true"
+    data-src={film}
+    muted
+    playsinline
+    preload="none"
+    disablepictureinpicture
+    disableremoteplayback></video>
+  <button type="button" class="opening__skip t-label" data-opening-skip tabindex="-1" aria-label={t.skipName} hidden>
+    <span class="opening__skip-line"></span>{t.skip}
+  </button>
+  <script is:inline>
+    (function (v) {
+      if (!v || !document.documentElement.classList.contains('intro-wait')) return;
+      v.preload = 'auto';
+      v.src = v.dataset.src;
+    })(document.querySelector('[data-opening-video]'));
+  </script>
 </div>
 
 <style is:global>
   .opening {
     position: absolute;
     inset: 0;
+    bottom: auto;
+    height: 100svh;
     display: none;
     overflow: hidden;
     background: var(--ink);
-    container-type: size;
     pointer-events: none;
   }
-  .opening__aerial {
+  .opening__video {
     position: absolute;
+    inset: 0;
     display: block;
-    max-width: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 50% 50%;
     opacity: 0;
   }
-  @media (orientation: landscape) {
-    /* As the hero's wide picture: one screen tall at the scene's top (story scene.css). */
-    .opening {
-      bottom: auto;
-      height: 100svh;
-    }
-    .opening__aerial {
-      width: var(--wide-w);
-      height: var(--wide-h);
-      left: calc(var(--wide-ax) * (100cqw - var(--wide-w)));
-      top: calc(var(--wide-ay) * (100cqh - var(--wide-h)));
-      transform-origin: var(--wide-origin);
-    }
-  }
+  /* Portrait: the film's whole frame, as wide as its title needs (source x 240–1010 of 1280 at
+     its widest, as it types in: 840 px of the frame across the screen), centred. The motion
+     script scales it up to fill the screen, then pulls back to this as the film's camera settles.
+     Its top and bottom edges melt into ink. Percent margins are of the width, top and bottom too. */
   @media (orientation: portrait) {
-    .opening__aerial {
-      width: var(--tall-width);
-      height: calc(var(--tall-width) * var(--tall-ratio));
-      left: calc(50% - var(--tall-width) / 2);
-      top: calc(var(--tall-anchor-y) * (100cqh - var(--tall-width) * var(--tall-ratio)));
-      transform-origin: var(--tall-origin);
+    .opening__video {
+      inset: auto;
+      top: 50%;
+      left: 50%;
+      width: calc(100% * 1280 / 840);
+      height: auto;
+      aspect-ratio: 16 / 9;
+      margin: calc(-100% * 1280 / 840 * 9 / 32) 0 0 calc(-100% * 1280 / 840 / 2);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+      mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
     }
   }
-  /* intro-wait (head script): the hero image waits under ink and the credit, headline and lead
-     wait at opacity 0; the button and the phone bar stay. If no script takes over, CSS alone
-     shows the first screen at 2.5 s. intro-on: the motion script drives the overlay.
-     intro-fade: no intro, the headline fades in over 480ms. Reduced motion: none of this. */
+  /* «Пропустить»: bottom right on a wide screen, level with the scroll hint; top right where the
+     phone bar takes the bottom. Any tap skips; this one says so, and a screen reader or voice
+     control presses it. Out of the Tab order: any key skips too. A soft ink backing under it keeps
+     the label legible over the film's lights (Brief «Доступность»: 7:1 or more); it ends well
+     short of the film's title. */
+  .opening__skip {
+    position: absolute;
+    bottom: calc(var(--space-2xl) - 12px);
+    right: var(--gutter);
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    appearance: none;
+    color: var(--text);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: color var(--dur-hover) linear;
+  }
+  .opening__skip::before {
+    content: '';
+    position: absolute;
+    inset: -44px -56px;
+    z-index: -1;
+    pointer-events: none;
+    /* The full 0.85 under the letters, then a soft fall to nothing. */
+    background: radial-gradient(
+      closest-side,
+      rgb(var(--ink-rgb) / 0.85) 60%,
+      rgb(var(--ink-rgb) / 0.6) 74%,
+      rgb(var(--ink-rgb) / 0.3) 87%,
+      rgb(var(--ink-rgb) / 0.1) 95%,
+      rgb(var(--ink-rgb) / 0)
+    );
+  }
+  .opening__skip[hidden] {
+    display: none;
+  }
+  .opening__skip:hover {
+    color: var(--gold-bright);
+  }
+  /* After a press focus goes to the name (motion.ts): a place to read on from, not a control. */
+  [data-scene='hero'] h1:focus {
+    outline: none;
+  }
+  .opening__skip-line {
+    width: 44px;
+    height: 1px;
+    background: var(--gold);
+  }
+  @media (orientation: portrait), (max-width: 767px), (max-height: 500px) {
+    .opening__skip {
+      top: max(var(--space-md), env(safe-area-inset-top, 0px));
+      bottom: auto;
+    }
+  }
+  /* intro-wait (head script): the hero image waits under ink and the credit, headline, lead,
+     button, nav and cue wait at opacity 0, the button and the menu not pressable; the phone bar
+     stays. If no script takes over, CSS alone shows the first screen at 2.5 s, and «Пропустить»
+     never shows: nothing would hear it. intro-on: the motion script drives the overlay and those
+     parts; the hero's scrim is off, the button and the menu still not pressable (a tap anywhere
+     skips) until intro-live, when they are half in. intro-reveal: the film dissolves, the scrim
+     comes back over 900ms (240ms on a skip, intro-skip). intro-fade: no intro, the headline fades
+     in over 480ms. Reduced motion: none of this. */
   @media (prefers-reduced-motion: no-preference) {
     html.intro-wait .opening,
     html.intro-on .opening {
@@ -89,8 +152,26 @@ const style = Object.entries(vars)
     html.intro-wait .opening {
       animation: opening-out var(--dur-title) var(--ease-exit) 2.5s both;
     }
-    html.intro-wait [data-scene='hero'] :is([data-part='credit'], [data-part='headline'], [data-part='lead']) {
+    html.intro-wait [data-scene='hero'] :is([data-part='credit'], [data-part='headline'], [data-part='lead'], [data-part='cue']) {
       animation: opening-in var(--dur-title) var(--ease-enter) 2.5s both;
+    }
+    html.intro-wait [data-scene='hero'] :is([data-part='action'], [data-part='nav']) {
+      animation: opening-in-live var(--dur-title) var(--ease-enter) 2.5s both;
+    }
+    html.intro-on:not(.intro-live) [data-scene='hero'] :is([data-part='action'], [data-part='nav']) {
+      pointer-events: none;
+    }
+    html.intro-on:not(.intro-reveal) [data-scene='hero'] .scene__column::before,
+    html.intro-on:not(.intro-reveal) [data-scene='hero'] .scene__column::after {
+      opacity: 0;
+    }
+    html.intro-reveal [data-scene='hero'] .scene__column::before,
+    html.intro-reveal [data-scene='hero'] .scene__column::after {
+      transition: opacity var(--dur-cut) var(--ease-camera);
+    }
+    html.intro-reveal.intro-skip [data-scene='hero'] .scene__column::before,
+    html.intro-reveal.intro-skip [data-scene='hero'] .scene__column::after {
+      transition-duration: var(--dur-small);
     }
     /* Its own keyframes: swapping intro-wait for intro-fade then starts a new 480ms fade
        instead of jumping to the end of the wait's animation. */
@@ -104,6 +185,17 @@ const style = Object.entries(vars)
     }
     to {
       opacity: 1;
+    }
+  }
+  /* The same for the button and the menu: not pressable while unseen. */
+  @keyframes opening-in-live {
+    from {
+      opacity: 0;
+      pointer-events: none;
+    }
+    to {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
   @keyframes opening-fade {

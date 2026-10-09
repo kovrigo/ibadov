@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { SEEN_KEY } from './motion-fixtures';
+import { noIntro } from './motion-fixtures';
 
 // Motion stays smooth on a phone (plan «Проверки»): 390×844, the processor slowed down 4×, the
 // whole page scrolled in about 8 s. No animation frame may take longer than 100ms.
@@ -9,7 +9,7 @@ test('phone, 4× slower CPU: scrolling the whole page never takes a frame over 1
   test.setTimeout(180_000);
   const ctx = await browser.newContext({ viewport: VIEWPORT, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
   // The intro is measured by its own spec: here the page opens on the first screen.
-  await ctx.addInitScript((k) => localStorage.setItem(k, '1'), SEEN_KEY);
+  await noIntro(ctx);
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
   await page.goto('/', { waitUntil: 'load' });

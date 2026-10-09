@@ -1,7 +1,8 @@
 // Camera (level 2): moves the story's scenes while the page scrolls. The hero's layers by speed,
-// slow push-ins, the text-scene plates, cuts through ink, text entry, the freeze frame and the
-// numbers. It finds everything through story.scenes() and sets its own start states; without it
-// every scene is in its final state. Reduced motion: it does nothing, and when the setting turns
+// the seam from the hero into services (the balcony dissolving over the held desk), slow push-ins,
+// the text-scene plates, cuts through ink, text entry, the freeze frame and the numbers. It finds
+// everything through story.scenes() and sets its own start states; without it every scene is in
+// its final state. Reduced motion: it does nothing, and when the setting turns
 // on while the page is open it stops at once and leaves every scene in its final state.
 import { story, type Scene, type SceneName } from '../story';
 import { onMotionSettingChange, prefersReducedMotion } from '../../platform/motion-setting';
@@ -115,12 +116,12 @@ export function startCamera(): void {
     stack('vertical', ['phone-back', 'phone-near']);
   }
 
-  const plates = (['services', 'numbers'] as const).flatMap((n) => {
+  const plates = (['numbers'] as const).flatMap((n) => {
     const v = view(n);
     const img = v && q(v.scene.layers.plate);
     return v && img ? [{ v, img }] : [];
   });
-  const pushes = (['partners', 'final'] as const).flatMap((n) => {
+  const pushes = (['services', 'partners', 'final'] as const).flatMap((n) => {
     const v = view(n);
     const el = v && q(v.scene.stacks.main);
     return v && el ? [{ v, el }] : [];
@@ -298,6 +299,15 @@ export function startCamera(): void {
   // ---- Layout and scroll ----
 
   let docHeight = 0;
+  // The seam (story scene.css): the services picture reaches up under the hero, held still. The
+  // desk starts transparent in the same frame, so it never shows under the first screen at rest.
+  const services = view('services');
+  const seamOn = !!hero && !!services;
+  if (hero && services) {
+    set(services.media, 'opacity', '0');
+    hero.section.dataset.seam = '';
+    services.section.dataset.seam = '';
+  }
   unsubscribe.push(
     onLayout(() => {
       docHeight = document.documentElement.scrollHeight;
@@ -321,13 +331,17 @@ export function startCamera(): void {
     onScroll(() => {
       const y = scrollY;
       const vh = innerHeight;
+      const p = hero ? m.heroProgress(y, hero.height) : 0;
       for (const v of views.values()) {
         const top = v.top - y;
-        if (!nearScreen(top, v.height, vh)) continue;
-        set(v.media, 'opacity', m.num(m.cutOpacity(top, v.height, vh)));
+        const seam = seamOn && (v === hero || v === services);
+        if (!seam && !nearScreen(top, v.height, vh)) continue;
+        let o = m.cutOpacity(top, v.height, vh);
+        if (seam && v === hero) o = m.seamHero(p);
+        if (seam && v === services) o = Math.min(m.seamDesk(p), m.cutOut(top, v.height));
+        set(v.media, 'opacity', m.num(o));
       }
       if (hero) {
-        const p = m.heroProgress(y, hero.height);
         if (nearScreen(hero.top - y, hero.height, vh)) {
           for (const st of heroStacks) {
             if (!st.shown) continue;
@@ -405,6 +419,7 @@ export function startCamera(): void {
       for (const off of unsubscribe) off();
       for (const el of touched) clearStyle(el);
       touched.clear();
+      for (const v of [hero, services]) if (v) delete v.section.dataset.seam;
       stopped = true;
     }),
   );

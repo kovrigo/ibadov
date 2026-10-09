@@ -47,6 +47,14 @@ const aerialMarks: Marks = {
 // aerial-vertical is source x 635–1341 of the aerial frame.
 const aerialVerticalX = 635;
 
+// The desk frame (customer, 8 October 2026): lamp and folder on the left, the watch in the middle,
+// keys and plans on the right, the cathedral through the window. desk-vertical is source x 520–1226.
+const deskMarks: Marks = {
+  dome: { x0: 975, y0: 30, x1: 1080, y1: 205 },
+  watch: { x: 700, y: 545 },
+};
+const deskVerticalX = 520;
+
 const wide = [640, 960, 1280, 1672] as const;
 const photo = { avif: 58, webp: 78 };
 
@@ -85,7 +93,12 @@ export const catalog = {
     file: 'stairs.webp', width: 1033, height: 1280, alpha: false, widths: [480, 720, 1033], quality: photo,
     marks: { face: { x0: 350, y0: 330, x1: 540, y1: 540 }, watch: { x: 430, y: 935 } }, scene: 'partners',
   },
-  'plate-services': { file: 'plate-services.webp', width: 522, height: 381, alpha: false, widths: [522], quality: { avif: 45, webp: 70 }, marks: {}, scene: 'services' },
+  desk: { file: 'desk.webp', width: 1672, height: 941, alpha: false, widths: wide, quality: photo, marks: deskMarks, scene: 'services' },
+  'desk-vertical': {
+    file: 'desk-vertical.webp', width: 706, height: 941, alpha: false, widths: [480, 706], quality: photo,
+    marks: { dome: shift(deskMarks.dome!, deskVerticalX), watch: { x: deskMarks.watch!.x - deskVerticalX, y: deskMarks.watch!.y } },
+    scene: 'services',
+  },
   'plate-numbers': { file: 'plate-numbers.webp', width: 540, height: 421, alpha: false, widths: [540], quality: { avif: 45, webp: 70 }, marks: {}, scene: 'numbers' },
   card: { file: 'card.webp', width: 1200, height: 630, alpha: false, widths: [1200], quality: { avif: 60, webp: 80 }, marks: {}, scene: 'card' },
 } as const satisfies Record<string, Entry>;

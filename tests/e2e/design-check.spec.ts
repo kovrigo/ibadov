@@ -152,7 +152,7 @@ for (const [w, h] of [...WIDE_TEN, LYING, ...VERTICAL]) {
           return p ? parseFloat(getComputedStyle(p).fontSize) : 0;
         });
         await scrollToSceneTop(page, l, 'services');
-        const title = (await page.evaluate(inPageProbeText, { scene: 'services', text: 'У каждого решения свой адрес.', scroll: false })).fontSize;
+        const title = (await page.evaluate(inPageProbeText, { scene: 'services', text: 'Вариантов два.', scroll: false })).fontSize;
         const display = (await page.evaluate(inPageProbeText, { scene: 'services', text: 'Купить', scroll: false })).fontSize;
         const wantTitle = w / h < 1.55 || (w === LYING[0] && h === LYING[1]);
         if (wantTitle) {

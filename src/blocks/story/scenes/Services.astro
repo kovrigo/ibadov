@@ -1,20 +1,33 @@
 ---
-// Scene 3, «Купить / Продать»: plain words on the blurred river lights.
+// Scene 3, «Купить / Продать»: plain words over the desk frame (watch, keys, plans, the cathedral
+// through the window). Wide: the frame full-bleed from its left edge; the text column stops
+// 40px short of the watch. Vertical: the desk's phone window, the cathedral above the text.
 import Scene from '../Scene.astro';
 import Layer from '../Layer.astro';
 import TitleCard from '../../../design/TitleCard.astro';
 import GoldLine from '../../../design/GoldLine.astro';
 import { texts } from '../../texts';
-import { images } from '../../images';
+import { images, catalog, geometry, textToFace } from '../../images';
 
 const t = texts.chapter('services');
-const plate = await images.picture('plate-services');
+const [wide, tall] = await Promise.all([images.picture('desk'), images.picture('desk-vertical')]);
+const frame = catalog.desk;
+const v = catalog['desk-vertical'];
+// Left edge of the watch, source x.
+const deskWatchLeft = 550;
+const wideSizes = `(min-aspect-ratio: ${frame.width}/${frame.height}) 100vw, ${((100 * frame.width) / frame.height).toFixed(2)}vh`;
+const tallSizes = `(min-aspect-ratio: ${v.width}/${v.height}) 100vw, ${((100 * v.width) / v.height).toFixed(2)}vh`;
+const vars = {
+  limit: `calc(${geometry.coverXCss(frame, deskWatchLeft, 0)} - ${textToFace.listed}px - var(--gutter))`,
+};
 const [buy, sell] = t.items;
 ---
 
-<Scene name="services">
+<Scene name="services" vars={vars}>
   <Fragment slot="media">
-    <div class="stack" data-stack="main"><Layer picture={plate} sizes="100vw" layer="plate" main /></div>
+    <div class="stack" data-stack="main">
+      <Layer picture={wide} sizes={wideSizes} portrait={{ picture: tall, sizes: tallSizes }} layer="photo" main />
+    </div>
   </Fragment>
   <slot name="accent" slot="accent" />
   <TitleCard text={t.title} />
@@ -26,6 +39,14 @@ const [buy, sell] = t.items;
 </Scene>
 
 <style>
+  .stack :global(img) {
+    object-position: 0% 50%;
+  }
+  @media (orientation: portrait) {
+    .stack :global(img) {
+      object-position: 50% 0%;
+    }
+  }
   .words {
     display: flex;
     flex-direction: column;
