@@ -24,6 +24,8 @@ const headCss = `${tokenCss()}\n${fontFaceCss}`;
     {fontPreloads.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
     <Fragment set:html={`<style>${headCss}</style>`} />
     <slot name="head" />
+    <!-- The board's bug report widget, on tailnet test sites only. -->
+    <script is:inline>if(location.hostname.endsWith(".ts.net"))document.head.append(Object.assign(document.createElement("script"),{src:"https://pane-server.tail9feca9.ts.net:8446/widget.js",defer:true}))</script>
   </head>
   <body>
     <slot />

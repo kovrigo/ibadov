@@ -1,0 +1,4 @@
+{
+  "cmd": "bun install --frozen-lockfile && SITE_URL=https://$(tailscale status --json | jq -r '.Self.DNSName | rtrimstr(\".\")'):$PORT bun run build && bunx astro preview --port $PORT --host 127.0.0.1 --allowed-hosts .ts.net --ignore-lock",
+  "url_path": "/"
+}
